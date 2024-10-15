@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    login VARCHAR(100) NOT NULL UNIQUE,
     password_hash VARCHAR(60) NOT NULL,
     balance NUMERIC DEFAULT 0.0
 );
