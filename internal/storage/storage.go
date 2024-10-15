@@ -14,7 +14,7 @@ var (
 )
 
 type Storage struct {
-	db *sql.DB
+	Db *sql.DB
 }
 
 func New(storage config.Storage) (*Storage, error) {
@@ -36,5 +36,5 @@ func New(storage config.Storage) (*Storage, error) {
 		return nil, fmt.Errorf("%s: error pinging: %w", fn, err)
 	}
 
-	return &Storage{db: db}, nil
+	return &Storage{Db: db}, nil
 }

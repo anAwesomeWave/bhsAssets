@@ -20,14 +20,13 @@ type HttpServer struct {
 }
 
 type Storage struct {
-	Path     string `yaml:"path" env-required:"true"`
+	Path     string `yaml:"path" env:"DB_PATH" env-required:"true"`
 	User     string `env:"POSTGRES_USER" env-required:"true"`
 	Password string `env:"POSTGRES_PASSWORD" env-required:"true"`
 	DbName   string `env:"POSTGRES_DB" env-required:"true"`
 }
 
 func Load(configPath string) *AppConfig {
-
 	if _, err := os.Stat(configPath); err != nil {
 		log.Fatalf("ConfigPath error: %v", err)
 	}
@@ -36,6 +35,15 @@ func Load(configPath string) *AppConfig {
 
 	if err := cleanenv.ReadConfig(configPath, &config); err != nil {
 		log.Fatalf("Config reading error: %v", err)
+	}
+	return &config
+}
+
+func LoadStorage() *Storage {
+	var config Storage
+
+	if err := cleanenv.ReadEnv(&config); err != nil {
+		log.Fatalf("Env reading error: %v", err)
 	}
 	return &config
 }
