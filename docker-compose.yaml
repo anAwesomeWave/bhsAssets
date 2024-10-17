@@ -5,15 +5,17 @@ volumes:
 
 services:
   app:
-    build:
+    image: my_app   # нужно для тестов, мы собираем образ на стадии test-build. и используем его сейчас
+    build:  # makefile для продакшн сборки всегда пересоберет образ, так что это можно удалить
       dockerfile: Dockerfile_App
     environment:
       ENTRYPOINT_COMMAND: "server"
       DB_PATH: "db:5432"
     ports:
       - "8080:8080"
-#    depends_on:
-#      - db
+    depends_on:
+      db:
+        condition: service_healthy  # без этого контейнеры будут "стучаться" в бд до ее полноценного запуска
   db:
     image: postgres:13.10
     env_file: config/.storage_env
@@ -21,9 +23,15 @@ services:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready", "-d", "db_prod" ]
+      interval: 10s
+      timeout: 60s
+      retries: 5
   migrate:
     build:
       dockerfile: Dockerfile_migrator
     command: -inMemory
     depends_on:
-      - db
+      db:
+        condition: service_healthy

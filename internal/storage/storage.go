@@ -4,11 +4,13 @@ import (
 	"bhsAssets/internal/config"
 	"bhsAssets/internal/util"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"log"
 )
 
 var (
@@ -46,6 +48,7 @@ func (s *Storage) CreateUser(login string, password string) (int64, error) {
 	const fn = "storage.CreateUser"
 
 	pHash, err := util.GetHashPassword(password)
+	log.Printf("hex: %s\n", hex.EncodeToString(pHash))
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", fn, err)
 	}
