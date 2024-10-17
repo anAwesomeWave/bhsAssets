@@ -3,6 +3,7 @@ package main
 import (
 	"bhsAssets/internal/config"
 	"bhsAssets/internal/storage"
+	"errors"
 	"github.com/joho/godotenv"
 	"log"
 )
@@ -25,6 +26,13 @@ func main() {
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	_ = db
 	log.Println("db opened")
+	id, err := db.CreateUser("opTimus", "password")
+	if err != nil {
+		if errors.Is(err, storage.ErrExists) {
+			log.Fatalf("non unique %v", err)
+		}
+		log.Fatalf("Unhandle err %v", err)
+	}
+	log.Printf("Inserted, id: %d\n", id)
 }
