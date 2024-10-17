@@ -4,6 +4,16 @@ volumes:
   pg_data:
 
 services:
+  app:
+    build:
+      dockerfile: Dockerfile_App
+    environment:
+      ENTRYPOINT_COMMAND: "server"
+      DB_PATH: "db:5432"
+    ports:
+      - "8080:8080"
+#    depends_on:
+#      - db
   db:
     image: postgres:13.10
     env_file: config/.storage_env
@@ -11,3 +21,9 @@ services:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
+  migrate:
+    build:
+      dockerfile: Dockerfile_migrator
+    command: -inMemory
+    depends_on:
+      - db

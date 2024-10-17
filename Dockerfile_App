@@ -1,0 +1,40 @@
+FROM golang:latest AS builder
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+#RUN #bash
+#ENV CGO_ENABLED 0
+#ENV GOOS linux
+#ENV GOARCH amd64
+# Сборка основного сервера
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o server ./cmd/app/
+#
+# Сборка утилиты для миграций
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o migrate ./cmd/migrator
+
+# Финальный образ
+FROM alpine:latest
+
+WORKDIR /app
+
+# Копирование бинарных файлов из стадии сборки
+COPY --from=builder /app/server /app/server
+COPY --from=builder /app/migrate /app/migrate
+
+# Переменная для выбора точки входа
+#ENV ENTRYPOINT_COMMAND=server
+
+# Точка входа с возможностью выбора запускаемого бинарника
+#ENTRYPOINT ["/app/start.sh"]
+
+COPY config config
+
+# Скрипт запуска start.sh
+#COPY start.sh /app/start.sh
+#RUN chmod +x /app/start.sh
+CMD ["./server"]
