@@ -20,7 +20,7 @@ services:
     image: postgres:13.10
     env_file: config/.storage_env
     ports:
-      - "5432:5432"
+      - "54321:5432"  # non-default postgres port to prevent collision
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:

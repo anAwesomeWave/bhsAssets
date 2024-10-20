@@ -4,6 +4,7 @@ COMPOSE_FILE=docker-compose.yaml
 MIGRATION_CONTAINER=migrate
 TEST_STAGE=builder
 IMAGE_NAME=my_app:latest  # название образа с тестоывым приложением
+DB_PATH=db:5432  # SHOULD MATCH WITH docker-compose. NB! other services use internal port
 
 
 # для разработки. поднимет бд и применит миграции.
@@ -19,6 +20,7 @@ app-build:
 
 # !internal
 test-build:
+	# собрать build стадию докерфайла
 	docker build --target $(TEST_STAGE) -t $(IMAGE_NAME) -f Dockerfile_App .
 
 # !internal
@@ -36,16 +38,16 @@ down:
 
 migrate-up: migrate-build
 	@echo "Running migrations up..."
-	docker compose -f $(COMPOSE_FILE) run $(MIGRATION_CONTAINER) ./migrate -dbPath "db:5432" -up
+	docker compose -f $(COMPOSE_FILE) run $(MIGRATION_CONTAINER) ./migrate -dbPath $(DB_PATH) -up
 
 migrate-test-up: migrate-up # перед тестовыми миграциями должны отработать обычные
 	@echo "Running TEST migrations up..."
-	docker compose -f $(COMPOSE_FILE) run $(MIGRATION_CONTAINER) ./migrate -dbPath "db:5432" -up -mgPath "./migrations/test"
+	docker compose -f $(COMPOSE_FILE) run $(MIGRATION_CONTAINER) ./migrate -dbPath $(DB_PATH) -up -mgPath "./migrations/test"
 
 
 test: test-build migrate-test-up
 	@echo "Running tests..."
-	docker compose -f $(COMPOSE_FILE) run $(APP_CONTAINER) go test -v ./...
+	docker compose -f $(COMPOSE_FILE) run $(APP_CONTAINER) go test -v ./... -cover
 
 # не подготавливает бд (докер ее создаст, но не применятся миграции). использзовать Up
 # !internal

@@ -27,8 +27,9 @@ type Storage struct {
 }
 
 func Load(configPath string) *AppConfig {
+	const fn = "config:Load"
 	if _, err := os.Stat(configPath); err != nil {
-		log.Fatalf("ConfigPath error: %v", err)
+		log.Fatalf("%s: ConfigPath error: %v", fn, err)
 	}
 
 	var config AppConfig
@@ -40,10 +41,11 @@ func Load(configPath string) *AppConfig {
 }
 
 func LoadStorage() *Storage {
+	const fn = "config:LoadStorage"
 	var config Storage
 
 	if err := cleanenv.ReadEnv(&config); err != nil {
-		log.Fatalf("Env reading error: %v", err)
+		log.Fatalf("%s:Env reading error: %v", fn, err)
 	}
 	return &config
 }
