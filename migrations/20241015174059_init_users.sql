@@ -3,7 +3,7 @@
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     login VARCHAR(100) NOT NULL UNIQUE,
-    password_hash bytea NOT NULL,
+    password_hash VARCHAR(100) NOT NULL,  -- bcrypt hash length - 60 chars.
     balance NUMERIC DEFAULT 0.0
 );
 -- +goose StatementEnd

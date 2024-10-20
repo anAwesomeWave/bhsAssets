@@ -21,7 +21,7 @@ app-build:
 # !internal
 test-build:
 	# собрать build стадию докерфайла
-	docker build --target $(TEST_STAGE) -t $(IMAGE_NAME) -f Dockerfile_App .
+	docker build --rm --target $(TEST_STAGE) -t $(IMAGE_NAME) -f Dockerfile_App .
 
 # !internal
 prod-build: migrate-build app-build
@@ -34,6 +34,7 @@ down:
 	- docker rmi -f $(IMAGE_NAME) # ошибки здесь возможны, если не было создано тестового образа,
  		# хотя скорее всего проьлем не возникнет, так как в docker compose прописано поле image и билдятся сервисы под этим же именем
 	docker compose -f $(COMPOSE_FILE) down -v --remove-orphans
+	docker compose rm -fsv
 
 
 migrate-up: migrate-build
@@ -45,7 +46,7 @@ migrate-test-up: migrate-up # перед тестовыми миграциями
 	docker compose -f $(COMPOSE_FILE) run $(MIGRATION_CONTAINER) ./migrate -dbPath $(DB_PATH) -up -mgPath "./migrations/test"
 
 
-test: test-build migrate-test-up
+test: down test-build migrate-test-up down
 	@echo "Running tests..."
 	docker compose -f $(COMPOSE_FILE) run $(APP_CONTAINER) go test -v ./... -cover
 
@@ -55,7 +56,7 @@ run-app: app-build
 	@echo "Running app..."
 	docker compose -f $(COMPOSE_FILE) up $(APP_CONTAINER)
 
-up: migrate-up run-app down
+up: down migrate-up run-app down
 	@echo "Running application with all dependencies.."
 
 .PHONY: up dev test deps build run-all run-db down migrate-up migrate-down run-tests clean

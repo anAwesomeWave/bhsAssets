@@ -61,7 +61,7 @@ func TestUserCreation(t *testing.T) {
 
 	t.Run("Create new User", func(t *testing.T) {
 		login := "MyNewTestUser"
-		password := "1234567"
+		password := "password"
 		id, err := strg.CreateUser(login, password)
 		if err != nil {
 			t.Fatal(err)
@@ -75,6 +75,27 @@ func TestUserCreation(t *testing.T) {
 		}
 		if totalIds != 1 {
 			t.Fatalf("Expected that there will be exactly 1 user with id %d, got %d", id, totalIds)
+		}
+	})
+}
+
+func TestGetUser(t *testing.T) {
+	strg, err := getStorageFixture()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("Get Created User", func(t *testing.T) {
+		login := "test"
+		password := "password"
+		expBalance := 1000.0
+		user, err := strg.GetUser(login, password)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if user.Id <= 0 || user.Login != login || user.Balance != expBalance {
+			t.Fatalf("Unexpected values from user's struct %v", *user)
+
 		}
 	})
 }

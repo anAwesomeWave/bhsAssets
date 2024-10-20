@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bhsAssets/internal/config"
+	"bhsAssets/internal/storage/models"
 	"bhsAssets/internal/util"
 	"database/sql"
 	"errors"
@@ -51,7 +52,6 @@ func (s *Storage) CreateUser(login string, password string) (int64, error) {
 	}
 	var id int64
 	stmt := `INSERT INTO users(login, password_hash) VALUES($1, $2) RETURNING id`
-
 	if err := s.Db.QueryRow(stmt, login, pHash).Scan(&id); err != nil {
 		var pgError *pgconn.PgError
 		if errors.As(err, &pgError) {
@@ -63,4 +63,22 @@ func (s *Storage) CreateUser(login string, password string) (int64, error) {
 	}
 
 	return id, nil
+}
+
+func (s *Storage) GetUser(login, password string) (*models.Users, error) {
+	const fn = "storage.GetUser"
+	stmt := `SELECT * FROM users WHERE login = $1`
+	var user models.Users
+	if err := s.Db.QueryRow(stmt, login).Scan(&user.Id, &user.Login, &user.PasswordHash, &user.Balance); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("%s: User {%s} with password {%s} not found : %w", fn, login, password, ErrNotFound)
+		}
+		return nil, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	if !util.IsHashEqualPassword(user.PasswordHash, password) {
+		return nil, fmt.Errorf("%s: User {%s} with password {%s} not found: passwords don't match : %w", fn, login, password, ErrNotFound)
+	}
+
+	return &user, nil
 }
