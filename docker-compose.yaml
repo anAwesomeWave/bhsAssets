@@ -12,7 +12,7 @@ services:
       ENTRYPOINT_COMMAND: "server"
       DB_PATH: "db:5432"
     ports:
-      - "8080:8080"
+      - "8080:8082"
     depends_on:
       db:
         condition: service_healthy  # без этого контейнеры будут "стучаться" в бд до ее полноценного запуска
