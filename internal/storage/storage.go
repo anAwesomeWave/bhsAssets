@@ -82,3 +82,17 @@ func (s *Storage) GetUser(login, password string) (*models.Users, error) {
 
 	return &user, nil
 }
+
+func (s *Storage) GetUserById(id int64) (*models.Users, error) {
+	const fn = "storage.GetUser"
+	stmt := `SELECT * FROM users WHERE id = $1`
+	var user models.Users
+	if err := s.Db.QueryRow(stmt, id).Scan(&user.Id, &user.Login, &user.PasswordHash, &user.Balance); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("%s: User with id {%d} not found : %w", fn, id, ErrNotFound)
+		}
+		return nil, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	return &user, nil
+}

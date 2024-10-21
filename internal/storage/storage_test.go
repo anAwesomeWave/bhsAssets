@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bhsAssets/internal/config"
+	"bhsAssets/internal/util"
 	"fmt"
 	"github.com/joho/godotenv"
 	"os"
@@ -94,6 +95,21 @@ func TestGetUser(t *testing.T) {
 			t.Fatal(err)
 		}
 		if user.Id <= 0 || user.Login != login || user.Balance != expBalance {
+			t.Fatalf("Unexpected values from user's struct %v", *user)
+
+		}
+	})
+	t.Run("Get User By ID", func(t *testing.T) {
+		var id int64 = 1
+		login := "test"
+		password := "password"
+		expBalance := 1000.0
+		user, err := strg.GetUserById(id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if user.Id != id || user.Login != login || !util.IsHashEqualPassword(user.PasswordHash, password) ||
+			user.Balance != expBalance {
 			t.Fatalf("Unexpected values from user's struct %v", *user)
 
 		}

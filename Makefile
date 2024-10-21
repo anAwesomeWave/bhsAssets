@@ -34,7 +34,6 @@ down:
 	- docker rmi -f $(IMAGE_NAME) # ошибки здесь возможны, если не было создано тестового образа,
  		# хотя скорее всего проьлем не возникнет, так как в docker compose прописано поле image и билдятся сервисы под этим же именем
 	docker compose -f $(COMPOSE_FILE) down -v --remove-orphans
-	docker compose rm -fsv
 
 
 migrate-up: migrate-build
