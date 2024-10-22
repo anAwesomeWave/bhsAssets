@@ -51,6 +51,15 @@ func main() {
 
 			r.Get("/me", users.GetUserData)
 		})
+
+		r.Route("/balance", func(r chi.Router) {
+			r.Use(jwtauth.Verifier(auth.TokenAuth))
+			r.Use(jwtauth.Authenticator(auth.TokenAuth))
+
+			//r.Get("/", users.GetUserData)
+
+			r.Patch("/update", users.UpdateBalanceInfo(*db))
+		})
 	})
 	serv := &http.Server{
 		Addr:         appConfig.HTTPServerCfg.Address,

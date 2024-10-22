@@ -96,3 +96,19 @@ func (s *Storage) GetUserById(id int64) (*models.Users, error) {
 
 	return &user, nil
 }
+
+func (s *Storage) UpdateUserBalance(balance float64, id int64) error {
+	const fn = "storage.GetUser"
+	stmt := ` UPDATE users SET balance = $1 WHERE id = $2`
+	var cnt int
+	if err := s.Db.QueryRow(stmt, balance, id).Scan(&cnt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("%s: User with id {%d} not found : %w", fn, id, ErrNotFound)
+		}
+		return fmt.Errorf("%s: %w", fn, err)
+	}
+	if cnt != 1 {
+		return fmt.Errorf("%s: User with id {%d} not found : %w", fn, id, ErrNotFound)
+	}
+	return nil
+}
