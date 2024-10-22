@@ -15,13 +15,6 @@ import (
 )
 
 func main() {
-	// ✔️ config (storage path, http ip:port etc.)
-	// TODO: router (chi router) ✔️
-	// TODO: storage (pg crud) ✔️
-	// TODO: migrations ✔️
-	// TODO: http server (net/http server) ✔️
-	// TODO: jwt ✔️
-	// TODO: jwt expiration
 	args := *parseFlags()
 	if err := godotenv.Load(*args.storageEnvPath); err != nil {
 		log.Fatalf("Error with loading StorageEnv file: %v", err)
@@ -68,7 +61,6 @@ func main() {
 	}
 
 	log.Println("Starting server...")
-	log.Printf("%v\n", router.Routes())
 	if err := serv.ListenAndServe(); err != nil {
 		log.Fatalln("failed to start server")
 	}

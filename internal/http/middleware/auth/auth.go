@@ -4,9 +4,8 @@ import (
 	"bhsAssets/internal/storage"
 	"bhsAssets/internal/storage/models"
 	"context"
-	"encoding/json"
 	"github.com/go-chi/jwtauth/v5"
-	"github.com/ydb-platform/ydb-go-sdk/v3/log"
+	"log"
 	"net/http"
 )
 
@@ -22,19 +21,19 @@ func GetUserByJwtToken(strg storage.Storage) func(next http.Handler) http.Handle
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
-			userID, err := (claims["user_id"].(json.Number)).Int64()
-			if err != nil {
-				log.Error(err)
+			userID, ok := claims["user_id"].(float64)
+			if !ok {
+				log.Printf("GetUserByJwtToken: Cannot get userId from claims user_id - %v", claims["user_id"])
 				http.Error(w, "Invalid token", http.StatusUnauthorized)
 				return
 			}
-			user, err := strg.GetUserById(userID)
+			user, err := strg.GetUserById(int64(userID))
 			if err != nil {
 				http.Error(w, "User not found", http.StatusUnauthorized)
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), userContextKey, &user)
+			ctx := context.WithValue(r.Context(), userContextKey, user)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
