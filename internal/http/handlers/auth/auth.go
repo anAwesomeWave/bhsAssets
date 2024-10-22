@@ -24,7 +24,7 @@ type authUser struct {
 func Register(strg storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user authUser
-		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&user); err != nil || len(user.Login) == 0 || len(user.Password) == 0 {
 			http.Error(w, "Invalid request", http.StatusBadRequest)
 			return
 		}
