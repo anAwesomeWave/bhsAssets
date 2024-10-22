@@ -2,7 +2,6 @@ package auth
 
 import (
 	"bhsAssets/internal/storage"
-	"bhsAssets/internal/storage/models"
 	"encoding/json"
 	"errors"
 	"github.com/go-chi/jwtauth/v5"
@@ -10,26 +9,26 @@ import (
 	"time"
 )
 
-var tokenAuth *jwtauth.JWTAuth
+var TokenAuth *jwtauth.JWTAuth
 
 func init() {
 	// TODO: get from env
-	tokenAuth = jwtauth.New("HS256", []byte("secret"), nil)
+	TokenAuth = jwtauth.New("HS256", []byte("secret"), nil)
 }
 
-//type registerUser struct {
-//	Login    string `json:"login"`
-//	Password string `json:"password"`
-//}
+type authUser struct {
+	Login    string `json:"login"`
+	Password string `json:"password"`
+}
 
 func Register(strg storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var user models.Users
+		var user authUser
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 			http.Error(w, "Invalid request", http.StatusBadRequest)
 			return
 		}
-		_, err := strg.CreateUser(user.Login, user.PasswordHash)
+		_, err := strg.CreateUser(user.Login, user.Password)
 		if err != nil {
 			if errors.Is(err, storage.ErrExists) {
 				http.Error(w, "User exists", http.StatusBadRequest)
@@ -45,19 +44,19 @@ func Register(strg storage.Storage) http.HandlerFunc {
 
 func Login(strg storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var input models.Users
+		var input authUser
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 			http.Error(w, "Invalid request", http.StatusBadRequest)
 			return
 		}
 
-		user, err := strg.GetUser(input.Login, input.PasswordHash)
+		user, err := strg.GetUser(input.Login, input.Password)
 		if err != nil {
 			http.Error(w, "Invalid credentials", http.StatusNotFound)
 			return
 		}
 
-		_, tokenString, err := tokenAuth.Encode(map[string]interface{}{
+		_, tokenString, err := TokenAuth.Encode(map[string]interface{}{
 			"user_id": user.Id,
 			"exp":     time.Now().Add(time.Hour).Unix(),
 		})

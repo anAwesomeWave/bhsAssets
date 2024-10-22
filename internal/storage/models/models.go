@@ -2,9 +2,9 @@ package models
 
 type Users struct {
 	Id           int64
-	Login        string `json:"login"`
-	PasswordHash string `json:"password"`
-	Balance      float64
+	Login        string  `json:"login"`
+	PasswordHash string  `json:"password"`
+	Balance      float64 `json:"balance"`
 }
 
 type Assets struct {
