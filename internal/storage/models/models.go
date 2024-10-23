@@ -3,7 +3,7 @@ package models
 type Users struct {
 	Id           int64
 	Login        string  `json:"login"`
-	PasswordHash string  `json:"password"`
+	PasswordHash string  `json:"-"`
 	Balance      float64 `json:"balance"`
 }
 

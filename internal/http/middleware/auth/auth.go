@@ -15,7 +15,7 @@ type contextKey string
 
 const userContextKey = contextKey("user")
 
-var UNAUTHORIZED_ERR = errors.New("Unauthorized user")
+var UnauthorizedErr = errors.New("Unauthorized user")
 
 func GetUserByJwtToken(strg storage.Storage) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -51,12 +51,12 @@ func FromContext(ctx context.Context) (*models.Users, bool) {
 func IdFromContext(ctx context.Context) (int64, error) {
 	_, claims, err := jwtauth.FromContext(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("no token found in context %w", UNAUTHORIZED_ERR)
+		return 0, fmt.Errorf("no token found in context %w", UnauthorizedErr)
 	}
 	userID, ok := claims["user_id"].(float64)
 	if !ok {
 		log.Printf("IdFromContext: Cannot get userId from claims user_id - %v", claims["user_id"])
-		return 0, fmt.Errorf("invalid token %w", UNAUTHORIZED_ERR)
+		return 0, fmt.Errorf("invalid token %w", UnauthorizedErr)
 	}
 	return int64(userID), nil
 }

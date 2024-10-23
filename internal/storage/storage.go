@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"log"
 )
 
 var (
@@ -107,8 +108,9 @@ func (s *Storage) UpdateUserBalance(balance float64, id int64) error {
 		}
 		return fmt.Errorf("%s: %w", fn, err)
 	}
+	log.Println(cnt)
 	if cnt != 1 {
-		return fmt.Errorf("%s: User with id {%d} not found : %w", fn, id, ErrNotFound)
+		return fmt.Errorf("%s: User with id {%d} not found (cnt not match %d): %w,", fn, id, cnt, ErrNotFound)
 	}
 	return nil
 }
