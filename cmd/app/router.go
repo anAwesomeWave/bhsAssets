@@ -24,8 +24,8 @@ func setUpRouter(db *storage.Storage) *chi.Mux {
 
 	router.Route("/auth", func(r chi.Router) {
 		r.Post("/register", auth.Register(*db))
-		r.Post("/login", auth.Login(*db))
 		r.Get("/register", auth.GetRegisterPage)
+		r.Post("/login", auth.Login(*db))
 		r.Get("/login", auth.GetLoginPage)
 	})
 	router.Route("/users", func(r chi.Router) {
@@ -37,14 +37,6 @@ func setUpRouter(db *storage.Storage) *chi.Mux {
 			r.Get("/me", users.GetUserData)
 		})
 
-		r.Route("/balance", func(r chi.Router) {
-			r.Use(jwtauth.Verifier(auth.TokenAuth))
-			r.Use(jwtauth.Authenticator(auth.TokenAuth))
-
-			//r.Get("/", users.GetUserData)
-
-			r.Patch("/update", users.UpdateBalanceInfo(*db))
-		})
 	})
 	router.Route("/api", func(r chi.Router) {
 		r.Use(common.JsonContentType)
@@ -66,12 +58,9 @@ func setUpRouter(db *storage.Storage) *chi.Mux {
 				r.Use(jwtauth.Verifier(auth.TokenAuth))
 				r.Use(jwtauth.Authenticator(auth.TokenAuth))
 
-				//r.Get("/", users.GetUserData)
-
-				r.Patch("/update", users.UpdateBalanceInfo(*db))
+				r.Patch("/", users.UpdateBalanceInfo(*db))
 			})
 		})
 	})
-
 	return router
 }

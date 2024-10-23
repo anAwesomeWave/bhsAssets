@@ -53,7 +53,7 @@ test: down test-build migrate-test-up down
 # !internal
 run-app: app-build
 	@echo "Running app..."
-	docker compose -f $(COMPOSE_FILE) up $(APP_CONTAINER)
+	- docker compose -f $(COMPOSE_FILE) up $(APP_CONTAINER)  # run after ctrl-c
 
 up: down migrate-up run-app down
 	@echo "Running application with all dependencies.."

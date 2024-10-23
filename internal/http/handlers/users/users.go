@@ -41,8 +41,6 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 }
 func UpdateBalanceInfo(strg storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		//user, ok := auth.FromContext(r.Context())
-		// maybe add info about assets
 		userId, err := auth.IdFromContext(r.Context())
 		if err != nil {
 			http.Error(w, "unathorized request", http.StatusUnauthorized)
@@ -60,8 +58,6 @@ func UpdateBalanceInfo(strg storage.Storage) http.HandlerFunc {
 			http.Error(w, "Internal Error", http.StatusInternalServerError)
 			return
 		}
-
-		log.Println(balance)
 		json.NewEncoder(w).Encode(&balance)
 	}
 }
