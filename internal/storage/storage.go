@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	ErrNotFound = errors.New("not found ")
+	ErrNotFound = errors.New("not found")
 	ErrExists   = errors.New("alias already exists")
 )
 
@@ -114,4 +114,22 @@ func (s *Storage) UpdateUserBalance(balance float64, id int64) error {
 		return fmt.Errorf("%s: User with id {%d} not found (cnt not match %d): %w,", fn, id, cnt, ErrNotFound)
 	}
 	return nil
+}
+
+func (s *Storage) CreateAsset(asset *models.Assets) (int64, error) {
+	const fn = "storage.CreateAsset"
+
+	var id int64
+	stmt := `INSERT INTO assets(name, description, price, creator_id) VALUES($1, $2, $3, $4) RETURNING id`
+	if err := s.Db.QueryRow(stmt, asset.Name, asset.Description, asset.Price, asset.CreatorId).Scan(&id); err != nil {
+		var pgError *pgconn.PgError
+		if errors.As(err, &pgError) {
+			if pgError.Code == pgerrcode.ForeignKeyViolation {
+				return 0, fmt.Errorf("%s: User with id {%d} does not exist : %w", fn, asset.CreatorId, ErrNotFound)
+			}
+		}
+		return 0, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	return id, nil
 }

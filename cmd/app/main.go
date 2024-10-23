@@ -22,6 +22,7 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 	log.Println("db opened")
+
 	router := setUpRouter(db)
 
 	serv := &http.Server{

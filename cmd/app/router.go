@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bhsAssets/internal/http/handlers/assets"
 	"bhsAssets/internal/http/handlers/auth"
 	"bhsAssets/internal/http/handlers/users"
 	midauth "bhsAssets/internal/http/middleware/auth"
@@ -36,7 +37,16 @@ func setUpRouter(db *storage.Storage) *chi.Mux {
 
 			r.Get("/me", users.GetUserData)
 		})
+	})
+	router.Route("/assets", func(r chi.Router) {
+		r.Group(func(r chi.Router) {
+			r.Use(jwtauth.Verifier(auth.TokenAuth))
+			r.Use(jwtauth.Authenticator(auth.TokenAuth))
+			r.Use(midauth.GetUserByJwtToken(*db))
 
+			r.Get("/create", assets.GetAssetsCreationPage)
+			r.Post("/create", assets.CreateAsset(*db))
+		})
 	})
 	router.Route("/api", func(r chi.Router) {
 		r.Use(common.JsonContentType)
