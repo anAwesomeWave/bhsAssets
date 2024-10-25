@@ -3,6 +3,7 @@ package main
 import (
 	"bhsAssets/internal/http/handlers/assets"
 	"bhsAssets/internal/http/handlers/auth"
+	"bhsAssets/internal/http/handlers/site"
 	"bhsAssets/internal/http/handlers/users"
 	midauth "bhsAssets/internal/http/middleware/auth"
 	"bhsAssets/internal/http/middleware/common"
@@ -25,6 +26,8 @@ func setUpRouter(db *storage.Storage) *chi.Mux {
 	router.Use(common.SetIsApiContextVariable)
 
 	router.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
+	router.NotFound(site.NotFoundHandler)
 
 	router.Group(func(router chi.Router) {
 		// аутентификация

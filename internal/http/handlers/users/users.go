@@ -20,7 +20,6 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 	isApi, ok := common.IsApiFromContext(r.Context())
 	if !ok {
 		http.Error(w, "Failed to get context", http.StatusInternalServerError)
-
 	}
 	if isApi {
 		json.NewEncoder(w).Encode(user)
