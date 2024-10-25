@@ -1,6 +1,7 @@
 package auth
 
 import (
+	mauth "bhsAssets/internal/http/middleware/auth"
 	"bhsAssets/internal/http/middleware/common"
 	"bhsAssets/internal/storage"
 	"encoding/json"
@@ -70,13 +71,38 @@ func Register(strg storage.Storage) http.HandlerFunc {
 			http.Error(w, "Failed to create user", http.StatusInternalServerError)
 			return
 		}
-		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("User registered"))
+		if isApi {
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte("User registered"))
+		} else {
+			http.Redirect(
+				w,
+				r,
+				"/auth/login",
+				http.StatusSeeOther,
+			)
+		}
 	}
 }
 
 func GetRegisterPage(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./templates/auth/register.html")
+	t, err := template.ParseFiles("./templates/common/base.html", "./templates/auth/register.html")
+
+	if err != nil {
+		http.Error(w, "Error loading template", http.StatusInternalServerError)
+		log.Println(err)
+		return
+	}
+	userId, authErr := mauth.IdFromContext(r.Context())
+	if err != nil && !errors.Is(err, mauth.UnauthorizedErr) {
+		http.Error(w, "Auth token internal error", http.StatusInternalServerError)
+		return
+	}
+	if err := t.Execute(w, map[string]interface{}{"isLogined": authErr == nil && userId > 0}); err != nil {
+		http.Error(w, "Error templating", http.StatusInternalServerError)
+		log.Println(err)
+		return
+	}
 }
 
 func Login(strg storage.Storage) http.HandlerFunc {
@@ -150,15 +176,35 @@ func Login(strg storage.Storage) http.HandlerFunc {
 
 func GetLoginPage(w http.ResponseWriter, r *http.Request) {
 	_, isInvalid := r.URL.Query()[INVAILD_CREDENTIALS_QUERY]
-	tmpl, err := template.ParseFiles("./templates/auth/login.html")
+	tmpl, err := template.ParseFiles("./templates/common/base.html", "./templates/auth/login.html")
 	if err != nil {
 		http.Error(w, "Error loading template", http.StatusInternalServerError)
 		log.Println(err)
 		return
 	}
-	if err := tmpl.Execute(w, map[string]interface{}{"isInvalid": isInvalid}); err != nil {
+	userId, authErr := mauth.IdFromContext(r.Context())
+	if authErr != nil && !errors.Is(authErr, mauth.UnauthorizedErr) {
+		http.Error(w, "Auth token internal error", http.StatusInternalServerError)
+		return
+	}
+	if err := tmpl.Execute(w, map[string]interface{}{"isLogined": authErr == nil && userId > 0, "isInvalid": isInvalid}); err != nil {
 		http.Error(w, "Error templating", http.StatusInternalServerError)
 		log.Println(err)
 		return
 	}
+}
+
+func Logout(w http.ResponseWriter, r *http.Request) {
+	c := &http.Cookie{
+		Name:     "jwt",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+		Secure:   true,
+	}
+
+	http.SetCookie(w, c)
+
+	http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
 }

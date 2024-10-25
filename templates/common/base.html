@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{block "title" .}} Asset Marketplace. {{ end }}</title>
+</head>
+<body>
+<header>
+    <nav>
+        {{ if not .isLogined }}
+        <a href="/auth/register">Register</a>
+        <a href="/auth/login">Login</a>
+        {{ else }}
+        <form action="/auth/logout" method="post" style="display: inline;">
+            <button type="submit">Logout</button>
+        </form>
+        {{ end }}
+    </nav>
+</header>
+{{block "content" .}} This is the default body.{{end}}
+</body>
+</html>

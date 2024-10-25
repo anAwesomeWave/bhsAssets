@@ -18,5 +18,6 @@ COPY --from=builder /app/server /app/server
 
 COPY config config
 COPY templates templates
+COPY static static
 
 CMD ["./server"]

@@ -1,10 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Login</title>
-</head>
-<body>
+{{define "title"}}Login{{end}}
+{{define "content"}}
 <h2>Login</h2>
 <form action="/auth/login" method="POST">
     <label for="login">Username:</label><br>
@@ -14,8 +9,6 @@
     <input type="submit" value="Login">
 </form>
 {{ if .isInvalid }}
-    <p><i>Invalid Credentials.</i></p>
+<p><i>Invalid Credentials.</i></p>
 {{ end }}
-<p></p>
-</body>
-</html>
+{{end}}
