@@ -150,13 +150,17 @@ func (s *Storage) GetAssetById(id int64) (*models.Assets, error) {
 	return &asset, nil
 }
 
-func (s *Storage) GetAllSitesFiltered(filters map[string]string) ([]*models.Assets, error) {
-	const fn = "storage.GetAllSitesFiltered"
+func (s *Storage) GetAllAssetsFiltered(filters map[string]string) ([]*models.Assets, error) {
+	const fn = "storage.GetAllAssetsFiltered"
 	psql := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar) // FOR POSTGRES !
-	query := psql.Select("id, name, price").From("assets")
+	query := psql.Select("id, name, description, price").From("assets")
 	if name, ok := filters["name"]; ok {
 		log.Printf("NAME IS %v \n", name)
 		query = query.Where(squirrel.Expr("name LIKE ?", "%"+name+"%"))
+	}
+
+	if creatorId, ok := filters["creator_id"]; ok {
+		query = query.Where(squirrel.Expr("creator_id = ?", creatorId))
 	}
 
 	if minPrice, ok := filters["min_price"]; ok {
@@ -182,10 +186,79 @@ func (s *Storage) GetAllSitesFiltered(filters map[string]string) ([]*models.Asse
 	for rows.Next() {
 		var asset models.Assets
 
-		if err := rows.Scan(&asset.Id, &asset.Name, &asset.Price); err != nil {
+		if err := rows.Scan(&asset.Id, &asset.Name, &asset.Description, &asset.Price); err != nil {
 			return nil, fmt.Errorf("%s: error getting next row %v", fn, err)
 		}
 		assets = append(assets, &asset)
+	}
+	return assets, nil
+}
+
+func (s *Storage) BuyAsset(buyer *models.Users, asset *models.Assets, creator *models.Users) error {
+	const fn = "storage.BuyAsset"
+	tx, err := s.Db.Begin()
+	if err != nil {
+		return fmt.Errorf("%s: %v", fn, err)
+	}
+	defer tx.Rollback()
+
+	var balance, price float64
+	err = tx.QueryRow("SELECT balance FROM users WHERE id = $1 FOR UPDATE", buyer.Id).Scan(&balance)
+	if err != nil {
+		return fmt.Errorf("%s: failed to lock user row: %v", fn, err)
+	}
+	err = tx.QueryRow("SELECT price FROM assets WHERE id = $1", asset.Id).Scan(&price)
+	if err != nil {
+		return fmt.Errorf("%s: failed to lock asset row: %v", fn, err)
+	}
+
+	if balance < price {
+		return fmt.Errorf("%s: insufficient balance", fn)
+	}
+	balance -= price
+	_, err = tx.Exec("UPDATE users SET balance = $1 WHERE id = $2", balance, buyer.Id)
+	if err != nil {
+		return fmt.Errorf("%s: failed to update user balance: %v", fn, err)
+	}
+
+	_, err = tx.Exec("INSERT INTO assets_owners (owner_id, asset_id) VALUES ($1, $2)", buyer.Id, asset.Id)
+	if err != nil {
+		return fmt.Errorf("%s: failed to insert into assets_owners: %v", fn, err)
+	}
+
+	_, err = tx.Exec("UPDATE users SET balance = $1 WHERE id = $2", creator.Balance+price, creator.Id)
+	if err != nil {
+		return fmt.Errorf("%s: failed to update creator balance: %v", fn, err)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("%s: failed to commit transaction: %v", fn, err)
+	}
+	return nil
+}
+
+func (s *Storage) GetBoughtAssets(userId int64) ([]*models.Assets, error) {
+	const fn = "storage.GetBoughtAssets"
+
+	rows, err := s.Db.Query(`SELECT asset_id FROM assets_owners WHERE owner_id = $1`, userId)
+	if err != nil {
+		return nil, fmt.Errorf("%s: error converting query to sql: %v", fn, err)
+	}
+	defer rows.Close()
+
+	var assets []*models.Assets
+
+	for rows.Next() {
+		var assetId int64
+		var asset *models.Assets
+		if err := rows.Scan(&assetId); err != nil {
+			return nil, fmt.Errorf("%s: error quering asset id from db: %v", fn, err)
+		}
+		asset, assetGettingError := s.GetAssetById(assetId)
+		if assetGettingError != nil {
+			return nil, fmt.Errorf("%s: error getting asset with id %v: %v", fn, assetId, assetGettingError)
+		}
+		assets = append(assets, asset)
 	}
 	return assets, nil
 }

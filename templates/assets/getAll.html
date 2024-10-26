@@ -16,14 +16,12 @@
 </form>
 <h2> All available assets: </h2>
 <ul>
-    <ul>
-        {{if eq (len .assets) 0 }}
-            <h3> No assets found matching your filters. </h3>
-        {{else}}
-            {{range .assets}}
-            <li>Name: <a href="/assets/{{.Id}}">{{.Name}} </a>, Price: {{.Price}}</li>
-            {{end}}
+    {{if eq (len .assets) 0 }}
+        <h3> No assets found matching your filters. </h3>
+    {{else}}
+        {{range .assets}}
+        <li>Name: <a href="/assets/{{.Id}}">{{.Name}} </a>, Price: {{.Price}}</li>
         {{end}}
-    </ul>
+    {{end}}
 </ul>
 {{end}}

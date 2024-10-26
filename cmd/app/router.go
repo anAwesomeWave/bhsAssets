@@ -25,14 +25,18 @@ func setUpRouter(db *storage.Storage) *chi.Mux {
 	router.Use(middleware.StripSlashes)
 	router.Use(common.SetIsApiContextVariable)
 
+	router.Use(common.MethodOverride) // для html форм
+
 	router.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-	router.NotFound(site.NotFoundHandler)
-
 	router.Group(func(router chi.Router) {
+		//router.Use(common.MethodOverride)
+
 		// аутентификация
 		router.Use(jwtauth.Verifier(auth.TokenAuth))
 		router.Use(midauth.GetUserByJwtToken(*db))
+
+		router.NotFound(site.NotFoundHandler)
 
 		router.Route("/auth", func(r chi.Router) {
 			r.Post("/register", auth.Register(*db))
@@ -45,20 +49,24 @@ func setUpRouter(db *storage.Storage) *chi.Mux {
 
 			r.Use(midauth.CustomAuthenticator(auth.TokenAuth))
 			r.Group(func(r chi.Router) {
-				r.Get("/me", users.GetUserData)
+				//r.Use(common.MethodOverride)
+				r.Get("/me", users.GetUserData(*db))
+
+				r.Get("/balance", users.UpdateBalancePage)
+				r.Patch("/balance", users.UpdateBalanceInfo(*db))
 			})
 		})
 		router.Route("/assets", func(r chi.Router) {
 			r.Get("/", assets.GetAllAssets(*db))
+
+			r.Get("/{id}", assets.GetAsset(*db))
 			r.Group(func(r chi.Router) {
 				//r.Use(jwtauth.Verifier(auth.TokenAuth))
 				r.Use(midauth.CustomAuthenticator(auth.TokenAuth))
 				//r.Use(midauth.GetUserByJwtToken(*db))
 				r.Get("/create", assets.GetAssetsCreationPage)
 				r.Post("/create", assets.CreateAsset(*db))
-
-				r.Get("/{id}", assets.GetAsset(*db))
-
+				r.Post("/buy/{id}", assets.BuyAsset(*db))
 			})
 		})
 		router.Route("/api", func(r chi.Router) {
@@ -74,7 +82,7 @@ func setUpRouter(db *storage.Storage) *chi.Mux {
 					r.Use(midauth.CustomAuthenticator(auth.TokenAuth))
 					//r.Use(midauth.GetUserByJwtToken(*db))
 
-					r.Get("/me", users.GetUserData)
+					r.Get("/me", users.GetUserData(*db))
 				})
 
 				r.Route("/balance", func(r chi.Router) {

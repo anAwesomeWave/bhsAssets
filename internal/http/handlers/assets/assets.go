@@ -185,7 +185,7 @@ func GetAllAssets(strg storage.Storage) http.HandlerFunc {
 		if maxp := r.URL.Query().Get("max_price"); maxp != "" {
 			filters["max_price"] = maxp
 		}
-		assets, err := strg.GetAllSitesFiltered(filters)
+		assets, err := strg.GetAllAssetsFiltered(filters)
 		if err != nil {
 			log.Printf("%s: error getting list of assets: %v\n", fn, err)
 			http.Error(w, "error getting list of assets", http.StatusInternalServerError)
@@ -209,6 +209,79 @@ func GetAllAssets(strg storage.Storage) http.HandlerFunc {
 				return
 			}
 
+		}
+	}
+}
+
+func BuyAsset(strg storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, ok := mauth.FromContext(r.Context())
+		if !ok {
+			http.Error(w, "User not found in context", http.StatusUnauthorized)
+			return
+		}
+
+		assetId, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		if err != nil {
+			site.NotFoundHandler(w, r)
+			return
+		}
+
+		asset, err := strg.GetAssetById(assetId)
+		if err != nil {
+			site.NotFoundHandler(w, r)
+			return
+		}
+
+		creator, err := strg.GetUserById(asset.CreatorId)
+		if err != nil {
+			http.Error(
+				w,
+				"We are sorry, but... Creator for this asset was not found. You cannot purchase this asset",
+				http.StatusInternalServerError,
+			)
+			return
+		}
+
+		if user.Id == creator.Id {
+			http.Error(
+				w,
+				"You cannot buy this asset since you are the creator of this asset",
+				http.StatusForbidden,
+			)
+			return
+		}
+		if user.Balance < asset.Price {
+			http.Error(
+				w,
+				"You don't have enough money to buy this asset.",
+				http.StatusConflict,
+			)
+			return
+		}
+
+		isApi, ok := common.IsApiFromContext(r.Context())
+		if !ok {
+			http.Error(w, "Failed to get context", http.StatusInternalServerError)
+		}
+
+		buyAssetErr := strg.BuyAsset(user, asset, creator)
+		status := http.StatusCreated
+		data := "ok"
+		if buyAssetErr != nil {
+			log.Println(err)
+			status = http.StatusBadRequest
+			data = "cannot process request"
+		}
+		if isApi {
+			w.WriteHeader(status)
+			json.NewEncoder(w).Encode(map[string]string{"status": data})
+		} else {
+			if buyAssetErr != nil {
+				http.Error(w, data, status)
+				return
+			}
+			http.Redirect(w, r, "/users/me", http.StatusSeeOther)
 		}
 	}
 }

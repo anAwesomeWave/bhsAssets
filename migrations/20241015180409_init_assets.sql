@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS assets (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT,
-    price NUMERIC DEFAULT 0.0,
+    price NUMERIC DEFAULT 0.0 CHECK (price >= 0),
     creator_id INTEGER REFERENCES users(id) ON DELETE CASCADE
 );
 -- +goose StatementEnd

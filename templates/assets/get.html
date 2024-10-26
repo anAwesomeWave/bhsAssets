@@ -6,5 +6,9 @@
     <li> Asset Description: {{ .asset.Description }} </li>
     <li> Asset Price: {{ .asset.Price }} </li>
     <li> Asset Creator: <a href="/users/{{.creator.Id}}">{{.creator.Login }}</a></li>
+
+    <form action="/assets/buy/{{.asset.Id}}" method="post" class="inline">
+        <button type="submit" class="btn-link">Buy asset {{ .asset.Name }} </button>
+    </form>
 </ul>
 {{end}}

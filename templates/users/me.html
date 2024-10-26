@@ -4,6 +4,28 @@
 <ul>
     <li> Id:  {{ .user.Id }} </li>
     <li> Login: {{ .user.Login }} </li>
-    <li> Balance: {{ .user.Balance }} </li>
+    <li> Balance: {{ .user.Balance }} <a href="/users/balance"> Update it!</a></li>
+</ul>
+
+<h2> All created assets: </h2>
+<ul>
+    {{if eq (len .createdAssets) 0 }}
+        <h3> You haven't created any assets yet. </h3>
+    {{else}}
+        {{range .createdAssets}}
+            <li>Name: <a href="/assets/{{.Id}}">{{.Name}} </a>, Price: {{.Price}}</li>
+        {{end}}
+    {{end}}
+</ul>
+
+<h2> All bought assets: </h2>
+<ul>
+    {{if eq (len .boughtAssets) 0 }}
+        <h3> You haven't bought any assets yet. </h3>
+    {{else}}
+        {{range .boughtAssets}}
+            <li>Name: <a href="/assets/{{.Id}}">{{.Name}} </a></li>
+        {{end}}
+    {{end}}
 </ul>
 {{end}}
