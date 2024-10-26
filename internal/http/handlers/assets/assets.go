@@ -1,12 +1,15 @@
 package assets
 
 import (
-	"bhsAssets/internal/http/middleware/auth"
+	"bhsAssets/internal/http/handlers/site"
+	mauth "bhsAssets/internal/http/middleware/auth"
 	"bhsAssets/internal/http/middleware/common"
 	"bhsAssets/internal/storage"
 	"bhsAssets/internal/storage/models"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/go-chi/chi/v5"
 	"html/template"
 	"log"
 	"net/http"
@@ -16,14 +19,20 @@ import (
 const ASSET_CREATION_QUERY = "asset_id"
 
 func GetAssetsCreationPage(w http.ResponseWriter, r *http.Request) {
+	user, ok := mauth.FromContext(r.Context())
+	// maybe add info about assets
+	if !ok {
+		http.Error(w, "User not found in context", http.StatusUnauthorized)
+		return
+	}
 	assetId := r.URL.Query().Get(ASSET_CREATION_QUERY)
-	tmpl, err := template.ParseFiles("./templates/assets/create.html")
+	tmpl, err := template.ParseFiles("./templates/common/base.html", "./templates/assets/create.html")
 	if err != nil {
 		http.Error(w, "Error loading template", http.StatusInternalServerError)
 		log.Println(err)
 		return
 	}
-	if err := tmpl.Execute(w, map[string]interface{}{"createdId": assetId}); err != nil {
+	if err := tmpl.Execute(w, map[string]interface{}{"isLogined": user != nil && user.Id > 0, "createdId": assetId}); err != nil {
 		http.Error(w, "Error templating", http.StatusInternalServerError)
 		log.Println(err)
 		return
@@ -36,7 +45,7 @@ func CreateAsset(strg storage.Storage) http.HandlerFunc {
 		if !ok {
 			http.Error(w, "Failed to get context", http.StatusInternalServerError)
 		}
-		userId, err := auth.IdFromContext(r.Context())
+		userId, err := mauth.IdFromContext(r.Context())
 
 		if err != nil {
 			http.Error(w, "unauthorized request", http.StatusUnauthorized)
@@ -93,5 +102,113 @@ func CreateAsset(strg storage.Storage) http.HandlerFunc {
 			fmt.Sprintf("/assets/create?%s=%d", ASSET_CREATION_QUERY, id),
 			http.StatusSeeOther,
 		)
+	}
+}
+
+func GetAsset(strg storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		log.Println("STARTING HANDLING ASSET GETTER")
+		userId, authErr := mauth.IdFromContext(r.Context())
+		if authErr != nil && !errors.Is(authErr, mauth.UnauthorizedErr) {
+			http.Error(w, "Auth token internal error", http.StatusInternalServerError)
+			return
+		}
+
+		assetId, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		if err != nil {
+			site.NotFoundHandler(w, r)
+			return
+		}
+		asset, err := strg.GetAssetById(assetId)
+		if err != nil {
+			site.NotFoundHandler(w, r)
+			return
+		}
+
+		isApi, ok := common.IsApiFromContext(r.Context())
+		if !ok {
+			http.Error(w, "Failed to get context", http.StatusInternalServerError)
+		}
+		if isApi {
+			json.NewEncoder(w).Encode(asset)
+		} else {
+			tmpl, err := template.ParseFiles("./templates/common/base.html", "./templates/assets/get.html")
+			if err != nil {
+				http.Error(w, "Error loading template", http.StatusInternalServerError)
+				log.Println(err)
+				return
+			}
+
+			creator, err := strg.GetUserById(asset.CreatorId)
+			if err != nil {
+				log.Println(w, fmt.Sprintf("creator with id %v not found for asset %v: %v", asset.Id, asset, err))
+				http.Error(w, "Creator Not Found", http.StatusInternalServerError)
+				return
+			}
+
+			if err := tmpl.Execute(w, map[string]interface{}{
+				"asset":     asset,
+				"creator":   creator,
+				"isCreator": authErr == nil && creator.Id == userId,
+				"isLogined": authErr == nil && userId > 0,
+			}); err != nil {
+				http.Error(w, "Error templating", http.StatusInternalServerError)
+				log.Println(err)
+				return
+			}
+
+		}
+	}
+}
+
+func GetAllAssets(strg storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		const fn = "assets.GetAllAssets"
+		log.Println("STARTING ALL ASSETS GETTER")
+		userId, authErr := mauth.IdFromContext(r.Context())
+		if authErr != nil && !errors.Is(authErr, mauth.UnauthorizedErr) {
+			http.Error(w, "Auth token internal error", http.StatusInternalServerError)
+			return
+		}
+		isApi, ok := common.IsApiFromContext(r.Context())
+		if !ok {
+			http.Error(w, "Failed to get context", http.StatusInternalServerError)
+		}
+		filters := make(map[string]string, 3)
+		if nm := r.URL.Query().Get("name"); nm != "" {
+			filters["name"] = nm
+		}
+		if mp := r.URL.Query().Get("min_price"); mp != "" {
+			filters["min_price"] = mp
+		}
+		if maxp := r.URL.Query().Get("max_price"); maxp != "" {
+			filters["max_price"] = maxp
+		}
+		assets, err := strg.GetAllSitesFiltered(filters)
+		if err != nil {
+			log.Printf("%s: error getting list of assets: %v\n", fn, err)
+			http.Error(w, "error getting list of assets", http.StatusInternalServerError)
+			return
+		}
+		if isApi {
+			json.NewEncoder(w).Encode(assets)
+		} else {
+			tmpl, err := template.ParseFiles("./templates/common/base.html", "./templates/assets/getAll.html")
+			if err != nil {
+				http.Error(w, "Error loading template", http.StatusInternalServerError)
+				log.Println(err)
+				return
+			}
+			if err := tmpl.Execute(w, map[string]interface{}{
+				"assets":    assets,
+				"isLogined": authErr == nil && userId > 0,
+			}); err != nil {
+				http.Error(w, "Error templating", http.StatusInternalServerError)
+				log.Println(err)
+				return
+			}
+
+		}
 	}
 }

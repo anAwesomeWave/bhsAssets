@@ -30,6 +30,7 @@ type authUser struct {
 
 func Register(strg storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		const fn = "auth.Register"
 		var user authUser
 		isApi, ok := common.IsApiFromContext(r.Context())
 		if !ok {
@@ -68,6 +69,7 @@ func Register(strg storage.Storage) http.HandlerFunc {
 				http.Error(w, "User exists", http.StatusBadRequest)
 				return
 			}
+			log.Printf("%s:%v\n", fn, err)
 			http.Error(w, "Failed to create user", http.StatusInternalServerError)
 			return
 		}

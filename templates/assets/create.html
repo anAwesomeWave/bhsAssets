@@ -1,23 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>New Asset</title>
-</head>
-<body>
-    <h2>New Asset</h2>
+{{define "title"}} New Asset {{end}}
+{{define "content"}}
+<h2>New Asset</h2>
 
-    <form action="/assets/create" method="POST">
-        <label for="name">Asset name (tag):</label><br>
-        <input type="text" id="name" name="name" required><br><br>
-        <label for="description">Description:</label><br>
-        <input type="text" id="description" name="description" required><br><br>
-        <label for="price">Price:</label><br>
-        <input type="number" step="0.01" id="price" name="price" required><br><br>
-        <input type="submit" value="Create Asset">
-    </form>
-    {{ if ne .createdId "" }}
-        <p><i> Created with Id {{ .createdId }}. </i></p>
-    {{ end }}
-</body>
-</html>
+<form action="/assets/create" method="POST">
+    <label for="name">Asset name (tag):</label><br>
+    <input type="text" id="name" name="name" required><br><br>
+    <label for="description">Description:</label><br>
+    <input type="text" id="description" name="description" required><br><br>
+    <label for="price">Price:</label><br>
+    <input type="number" step="0.01" id="price" name="price" required><br><br>
+    <input type="submit" value="Create Asset">
+</form>
+{{ if ne .createdId "" }}
+    <p><i> Created with Id {{ .createdId }}. </i></p>
+{{ end }}
+
+{{ end }}

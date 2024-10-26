@@ -4,17 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{block "title" .}} Asset Marketplace. {{ end }}</title>
+    <link rel="stylesheet" href="/static/css/base-nav.css">
 </head>
 <body>
 <header>
     <nav>
+        <ul> Welcome to assets MarketPlace</ul>
         {{ if not .isLogined }}
-        <a href="/auth/register">Register</a>
-        <a href="/auth/login">Login</a>
+        <li><a href="/auth/register">Register</a></li>
+        <li><a href="/auth/login">Login</a></li>
+        <li><a href="/assets/">Or see what we have got</a></li>
         {{ else }}
-        <form action="/auth/logout" method="post" style="display: inline;">
-            <button type="submit">Logout</button>
-        </form>
+            <form action="/auth/logout" method="post" class="inline">
+                <button type="submit" class="link-button">Logout</button>
+            </form>
+            <a href="/assets/create">Try to create new Asset</a>
+            <a href="/assets/">Or view other assets</a>
         {{ end }}
     </nav>
 </header>

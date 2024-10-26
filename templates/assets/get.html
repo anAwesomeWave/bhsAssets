@@ -1,0 +1,10 @@
+{{define "title"}} {{ .asset.Name }} {{end}}
+{{define "content"}}
+<h2> About asset: </h2>
+<ul>
+    <li> Asset name:  <b>{{ .asset.Name }} </b> </li>
+    <li> Asset Description: {{ .asset.Description }} </li>
+    <li> Asset Price: {{ .asset.Price }} </li>
+    <li> Asset Creator: <a href="/users/{{.creator.Id}}">{{.creator.Login }}</a></li>
+</ul>
+{{end}}

@@ -24,7 +24,6 @@ func GetUserByJwtToken(strg storage.Storage) func(next http.Handler) http.Handle
 		const fn = "Middleware.Auth.GetUserByJwtToken"
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			_, claims, err := jwtauth.FromContext(r.Context())
-			log.Printf("GetUserToken Middleware %v\t%v\n", claims, err)
 			if err != nil {
 				// за это отвечает jwtauth.Authenticator
 				//http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -63,7 +62,6 @@ func IdFromContext(ctx context.Context) (int64, error) {
 	}
 
 	userID, ok := claims["user_id"].(float64)
-	log.Println(claims)
 	if !ok {
 		log.Printf("IdFromContext: Cannot get userId from claims user_id - %v", claims["user_id"])
 		return 0, fmt.Errorf("invalid token %w", UnauthorizedErr)

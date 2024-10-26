@@ -49,13 +49,16 @@ func setUpRouter(db *storage.Storage) *chi.Mux {
 			})
 		})
 		router.Route("/assets", func(r chi.Router) {
+			r.Get("/", assets.GetAllAssets(*db))
 			r.Group(func(r chi.Router) {
 				//r.Use(jwtauth.Verifier(auth.TokenAuth))
-				//r.Use(jwtauth.Authenticator(auth.TokenAuth))
+				r.Use(midauth.CustomAuthenticator(auth.TokenAuth))
 				//r.Use(midauth.GetUserByJwtToken(*db))
-
 				r.Get("/create", assets.GetAssetsCreationPage)
 				r.Post("/create", assets.CreateAsset(*db))
+
+				r.Get("/{id}", assets.GetAsset(*db))
+
 			})
 		})
 		router.Route("/api", func(r chi.Router) {

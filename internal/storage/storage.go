@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -132,4 +133,59 @@ func (s *Storage) CreateAsset(asset *models.Assets) (int64, error) {
 	}
 
 	return id, nil
+}
+
+func (s *Storage) GetAssetById(id int64) (*models.Assets, error) {
+	const fn = "storage.GetAssetById"
+
+	stmt := `SELECT * FROM assets WHERE id = $1`
+	var asset models.Assets
+	if err := s.Db.QueryRow(stmt, id).Scan(&asset.Id, &asset.Name, &asset.Description, &asset.Price, &asset.CreatorId); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("%s: Asset with id {%d} not found : %w", fn, id, ErrNotFound)
+		}
+		return nil, fmt.Errorf("%s: %w", fn, err)
+	}
+
+	return &asset, nil
+}
+
+func (s *Storage) GetAllSitesFiltered(filters map[string]string) ([]*models.Assets, error) {
+	const fn = "storage.GetAllSitesFiltered"
+	psql := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar) // FOR POSTGRES !
+	query := psql.Select("id, name, price").From("assets")
+	if name, ok := filters["name"]; ok {
+		log.Printf("NAME IS %v \n", name)
+		query = query.Where(squirrel.Expr("name LIKE ?", "%"+name+"%"))
+	}
+
+	if minPrice, ok := filters["min_price"]; ok {
+		query = query.Where(squirrel.GtOrEq{"price": minPrice})
+	}
+	if maxPrice, ok := filters["max_price"]; ok {
+		query = query.Where(squirrel.LtOrEq{"price": maxPrice})
+	}
+	sq, args, err := query.ToSql()
+
+	if err != nil {
+		return nil, fmt.Errorf("%s: error converting query to sql: %v", fn, err)
+	}
+
+	rows, err := s.Db.Query(sq, args...)
+	if err != nil {
+		return nil, fmt.Errorf("%s: error quering data from db: %v", fn, err)
+	}
+	defer rows.Close()
+
+	var assets []*models.Assets
+
+	for rows.Next() {
+		var asset models.Assets
+
+		if err := rows.Scan(&asset.Id, &asset.Name, &asset.Price); err != nil {
+			return nil, fmt.Errorf("%s: error getting next row %v", fn, err)
+		}
+		assets = append(assets, &asset)
+	}
+	return assets, nil
 }

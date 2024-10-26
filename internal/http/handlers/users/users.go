@@ -24,13 +24,13 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 	if isApi {
 		json.NewEncoder(w).Encode(user)
 	} else {
-		tmpl, err := template.ParseFiles("./templates/users/me.html")
+		tmpl, err := template.ParseFiles("./templates/common/base.html", "./templates/users/me.html")
 		if err != nil {
 			http.Error(w, "Error loading template", http.StatusInternalServerError)
 			log.Println(err)
 			return
 		}
-		if err := tmpl.Execute(w, user); err != nil {
+		if err := tmpl.Execute(w, map[string]interface{}{"user": user, "isLogined": user.Id > 0}); err != nil {
 			http.Error(w, "Error templating", http.StatusInternalServerError)
 			log.Println(err)
 			return
@@ -38,6 +38,7 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 
 	}
 }
+
 func UpdateBalanceInfo(strg storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId, err := auth.IdFromContext(r.Context())
