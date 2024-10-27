@@ -15,6 +15,8 @@
         <li><a href="/auth/login">Login</a></li>
         <li><a href="/assets/">Or see what we have got</a></li>
         {{ else }}
+
+        <a href="/users/me">Try to create new Asset</a>
             <form action="/auth/logout" method="post" class="inline">
                 <button type="submit" class="btn-link">Logout</button>
             </form>

@@ -1,9 +1,11 @@
 package auth
 
 import (
+	"bhsAssets/internal/http/middleware/common"
 	"bhsAssets/internal/storage"
 	"bhsAssets/internal/storage/models"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/go-chi/jwtauth/v5"
@@ -75,6 +77,16 @@ func CustomAuthenticator(ja *jwtauth.JWTAuth) func(http.Handler) http.Handler {
 			token, _, err := jwtauth.FromContext(r.Context())
 
 			if err != nil {
+				isApi, ok := common.IsApiFromContext(r.Context())
+				if !ok {
+					http.Error(w, "Failed to get context", http.StatusInternalServerError)
+					return
+				}
+				if isApi {
+					w.WriteHeader(http.StatusUnauthorized)
+					json.NewEncoder(w).Encode(map[string]string{"error": "401"})
+					return
+				}
 				t, err := template.ParseFiles("./templates/common/base.html", "./templates/common/401_error.html")
 				if err != nil {
 					http.Error(w, "Error loading template", http.StatusInternalServerError)
@@ -87,12 +99,19 @@ func CustomAuthenticator(ja *jwtauth.JWTAuth) func(http.Handler) http.Handler {
 					log.Println(err)
 					return
 				}
-
-				//http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
-
 			if token == nil || jwt.Validate(token) != nil {
+				isApi, ok := common.IsApiFromContext(r.Context())
+				if !ok {
+					http.Error(w, "Failed to get context", http.StatusInternalServerError)
+					return
+				}
+				if isApi {
+					w.WriteHeader(http.StatusUnauthorized)
+					json.NewEncoder(w).Encode(map[string]string{"error": "401"})
+					return
+				}
 				t, err := template.ParseFiles("./templates/common/base.html", "./templates/common/401_error.html")
 				if err != nil {
 					http.Error(w, "Error loading template", http.StatusInternalServerError)

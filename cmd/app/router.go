@@ -15,8 +15,6 @@ import (
 )
 
 func setUpRouter(db *storage.Storage) *chi.Mux {
-	//subRouter := chi.NewRouter(
-	//var userSubRouter *chi.Router
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger)
@@ -27,17 +25,19 @@ func setUpRouter(db *storage.Storage) *chi.Mux {
 
 	router.Use(common.MethodOverride) // для html форм
 
+	router.NotFound(site.NotFoundHandler)
+
 	router.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	router.Group(func(router chi.Router) {
-		//router.Use(common.MethodOverride)
 
 		// аутентификация
 		router.Use(jwtauth.Verifier(auth.TokenAuth))
 		router.Use(midauth.GetUserByJwtToken(*db))
 
-		router.NotFound(site.NotFoundHandler)
-
+		router.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/assets/", http.StatusSeeOther)
+		})
 		router.Route("/auth", func(r chi.Router) {
 			r.Post("/register", auth.Register(*db))
 			r.Get("/register", auth.GetRegisterPage)
@@ -49,7 +49,6 @@ func setUpRouter(db *storage.Storage) *chi.Mux {
 
 			r.Use(midauth.CustomAuthenticator(auth.TokenAuth))
 			r.Group(func(r chi.Router) {
-				//r.Use(common.MethodOverride)
 				r.Get("/me", users.GetUserData(*db))
 
 				r.Get("/balance", users.UpdateBalancePage)
@@ -61,9 +60,7 @@ func setUpRouter(db *storage.Storage) *chi.Mux {
 
 			r.Get("/{id}", assets.GetAsset(*db))
 			r.Group(func(r chi.Router) {
-				//r.Use(jwtauth.Verifier(auth.TokenAuth))
 				r.Use(midauth.CustomAuthenticator(auth.TokenAuth))
-				//r.Use(midauth.GetUserByJwtToken(*db))
 				r.Get("/create", assets.GetAssetsCreationPage)
 				r.Post("/create", assets.CreateAsset(*db))
 				r.Post("/buy/{id}", assets.BuyAsset(*db))
@@ -71,25 +68,30 @@ func setUpRouter(db *storage.Storage) *chi.Mux {
 		})
 		router.Route("/api", func(r chi.Router) {
 			r.Use(common.JsonContentType)
+
 			r.Route("/auth", func(r chi.Router) {
 				r.Post("/register", auth.Register(*db))
 				r.Post("/login", auth.Login(*db))
 			})
 			r.Route("/users", func(r chi.Router) {
-
+				r.Use(midauth.CustomAuthenticator(auth.TokenAuth))
 				r.Group(func(r chi.Router) {
-					//r.Use(jwtauth.Verifier(auth.TokenAuth))
-					r.Use(midauth.CustomAuthenticator(auth.TokenAuth))
-					//r.Use(midauth.GetUserByJwtToken(*db))
-
 					r.Get("/me", users.GetUserData(*db))
 				})
 
 				r.Route("/balance", func(r chi.Router) {
-					//r.Use(jwtauth.Verifier(auth.TokenAuth))
-					r.Use(midauth.CustomAuthenticator(auth.TokenAuth))
-
 					r.Patch("/", users.UpdateBalanceInfo(*db))
+				})
+			})
+
+			r.Route("/assets", func(r chi.Router) {
+				r.Get("/", assets.GetAllAssets(*db))
+
+				r.Get("/{id}", assets.GetAsset(*db))
+				r.Group(func(r chi.Router) {
+					r.Use(midauth.CustomAuthenticator(auth.TokenAuth))
+					r.Post("/create", assets.CreateAsset(*db))
+					r.Post("/buy/{id}", assets.BuyAsset(*db))
 				})
 			})
 		})

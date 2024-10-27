@@ -3,6 +3,7 @@ package site
 import (
 	mauth "bhsAssets/internal/http/middleware/auth"
 	"bhsAssets/internal/http/middleware/common"
+	"encoding/json"
 	"html/template"
 	"log"
 	"net/http"
@@ -14,9 +15,10 @@ func NotFoundHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to get context", http.StatusInternalServerError)
 	}
 	if isApi {
-		http.Error(w, "Page cannot be found :(", http.StatusNotFound)
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "404"})
+		return
 	} else {
-
 		tmpl, err := template.ParseFiles("./templates/common/base.html", "./templates/common/404_not_found.html")
 
 		if err != nil {
