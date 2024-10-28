@@ -11,7 +11,7 @@ func parseFlags() *AppArgs {
 	confPath := flag.String("confPath", "./config/local.yaml", "path to config file")
 	storageEnv := flag.String(
 		"storageEnv",
-		"./config/.storage_env",
+		"./config/.storage_env-public",
 		"path to env file with postgres attributes (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)",
 	)
 	flag.Parse()
