@@ -63,7 +63,8 @@ func setUpRouter(db *storage.Storage) *chi.Mux {
 				r.Use(midauth.CustomAuthenticator(auth.TokenAuth))
 				r.Get("/create", assets.GetAssetsCreationPage)
 				r.Post("/create", assets.CreateAsset(*db))
-				r.Post("/buy/{id}", assets.BuyAsset(*db))
+				r.Post("/{id}", assets.BuyAsset(*db))
+				r.Delete("/{id}", assets.DeleteAsset(*db))
 			})
 		})
 		router.Route("/api", func(r chi.Router) {
@@ -86,7 +87,8 @@ func setUpRouter(db *storage.Storage) *chi.Mux {
 				r.Group(func(r chi.Router) {
 					r.Use(midauth.CustomAuthenticator(auth.TokenAuth))
 					r.Post("/create", assets.CreateAsset(*db))
-					r.Post("/buy/{id}", assets.BuyAsset(*db))
+					r.Post("/{id}", assets.BuyAsset(*db))
+					r.Delete("/{id}", assets.DeleteAsset(*db))
 				})
 			})
 		})

@@ -262,3 +262,20 @@ func (s *Storage) GetBoughtAssets(userId int64) ([]*models.Assets, error) {
 	}
 	return assets, nil
 }
+
+func (s *Storage) DeleteAsset(assetId int64) error {
+	const fn = "storage.DeleteAsset"
+
+	rows, err := s.Db.Exec(`DELETE FROM assets WHERE id = $1`, assetId)
+	if err != nil {
+		return fmt.Errorf("%s: %w", fn, err)
+	}
+	count, err := rows.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s: %w", fn, err)
+	}
+	if count != 1 {
+		return ErrNotFound
+	}
+	return nil
+}

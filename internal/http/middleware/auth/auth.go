@@ -127,7 +127,6 @@ func CustomAuthenticator(ja *jwtauth.JWTAuth) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Token is authenticated, pass it through
 			next.ServeHTTP(w, r)
 		}
 		return http.HandlerFunc(hfn)

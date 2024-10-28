@@ -30,14 +30,18 @@ func JsonContentType(next http.Handler) http.Handler {
 }
 
 func MethodOverride(next http.Handler) http.Handler {
-	// нужно для html форм, т.к. они поддержива.т только get и post по умолч.
+	// нужно для html форм, т.к. они поддерживают только get и post по умолч.
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
-			if r.FormValue("_method") == "PATCH" {
+			switch r.FormValue("_method") {
+			case "PATCH":
 				r.Method = http.MethodPatch
+			case "PUT":
+				r.Method = http.MethodPut
+			case "DELETE":
+				r.Method = http.MethodDelete
 			}
 		}
-		log.Println(r.Method)
 		next.ServeHTTP(w, r)
 	})
 }

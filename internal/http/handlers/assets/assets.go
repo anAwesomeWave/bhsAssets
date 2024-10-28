@@ -160,6 +160,78 @@ func GetAsset(strg storage.Storage) http.HandlerFunc {
 	}
 }
 
+func DeleteAsset(strg storage.Storage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		userId, authErr := mauth.IdFromContext(r.Context())
+		if authErr != nil && !errors.Is(authErr, mauth.UnauthorizedErr) {
+			http.Error(w, "Auth token internal error", http.StatusInternalServerError)
+			return
+		}
+
+		assetId, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+		if err != nil {
+			site.NotFoundHandler(w, r)
+			return
+		}
+		asset, err := strg.GetAssetById(assetId)
+		if err != nil {
+			site.NotFoundHandler(w, r)
+			return
+		}
+
+		if asset.CreatorId != userId {
+			http.Error(w, "forbidden. You are not the creator of the asset", http.StatusForbidden)
+			return
+		}
+		deletionErr := strg.DeleteAsset(assetId)
+
+		isApi, ok := common.IsApiFromContext(r.Context())
+		if !ok {
+			http.Error(w, "Failed to get context", http.StatusInternalServerError)
+		}
+		if isApi {
+			if deletionErr != nil {
+				if errors.Is(deletionErr, storage.ErrNotFound) {
+					w.WriteHeader(http.StatusNotFound)
+					json.NewEncoder(w).Encode(map[string]string{"status": "404"})
+					return
+				}
+				w.WriteHeader(http.StatusInternalServerError)
+				json.NewEncoder(w).Encode(map[string]string{"status": "500"})
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+		} else {
+			tmpl, err := template.ParseFiles("./templates/common/base.html", "./templates/assets/get.html")
+			if err != nil {
+				http.Error(w, "Error loading template", http.StatusInternalServerError)
+				log.Println(err)
+				return
+			}
+
+			creator, err := strg.GetUserById(asset.CreatorId)
+			if err != nil {
+				log.Println(w, fmt.Sprintf("creator with id %v not found for asset %v: %v", asset.Id, asset, err))
+				http.Error(w, "Creator Not Found", http.StatusInternalServerError)
+				return
+			}
+
+			if err := tmpl.Execute(w, map[string]interface{}{
+				"asset":     asset,
+				"creator":   creator,
+				"isCreator": authErr == nil && creator.Id == userId,
+				"isLogined": authErr == nil && userId > 0,
+			}); err != nil {
+				http.Error(w, "Error templating", http.StatusInternalServerError)
+				log.Println(err)
+				return
+			}
+
+		}
+	}
+}
+
 func GetAllAssets(strg storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const fn = "assets.GetAllAssets"
