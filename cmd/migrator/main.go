@@ -15,7 +15,7 @@ func main() {
 	storagePath := flag.String("dbPath", "localhost:5432", "path to database")
 	configEnvPath := flag.String(
 		"envPath",
-		"./config/.storage_env",
+		"./config/.storage_env-public",
 		"path to env config file with 3 defined keys. POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB",
 	)
 	isUp := flag.Bool(
