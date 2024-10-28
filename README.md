@@ -104,7 +104,7 @@ The API is accessible via different base URLs depending on the environment:
 {
     "name": "string (required)",
     "description": "string (optional)",
-     "balance": number (optional)
+     "balance": "number (optional)"
 }
 ```
 
@@ -152,7 +152,7 @@ The API is accessible via different base URLs depending on the environment:
   **Request Body:**
   ```json
   {
-    "balance": number (required)
+    "balance": "number (required)"
   }
   ```
 - `GET /api/users/me`  
@@ -164,9 +164,9 @@ The API is accessible via different base URLs depending on the environment:
 **Response Body:**
   ```json
   {
-    "Id": number,
+    "Id": "number",
     "login": "string",
-    "balance": number
+    "balance": "number"
   }
   ```
 ### 🌍 Website Routes
@@ -218,3 +218,8 @@ The API is accessible via different base URLs depending on the environment:
 
 5. **Documentation**  
    Generate Swagger/OpenAPI documentation. Currently, the API documentation is difficult to maintain as it is comment-based instead of code-based.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request.
+
