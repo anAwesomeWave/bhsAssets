@@ -153,7 +153,7 @@ func (s *Storage) GetAssetById(id int64) (*models.Assets, error) {
 func (s *Storage) GetAllAssetsFiltered(filters map[string]string) ([]*models.Assets, error) {
 	const fn = "storage.GetAllAssetsFiltered"
 	psql := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar) // FOR POSTGRES !
-	query := psql.Select("id, name, description, price").From("assets")
+	query := psql.Select("id, name, description, price, creator_id").From("assets")
 	if name, ok := filters["name"]; ok {
 		log.Printf("NAME IS %v \n", name)
 		query = query.Where(squirrel.Expr("name LIKE ?", "%"+name+"%"))
@@ -186,7 +186,7 @@ func (s *Storage) GetAllAssetsFiltered(filters map[string]string) ([]*models.Ass
 	for rows.Next() {
 		var asset models.Assets
 
-		if err := rows.Scan(&asset.Id, &asset.Name, &asset.Description, &asset.Price); err != nil {
+		if err := rows.Scan(&asset.Id, &asset.Name, &asset.Description, &asset.Price, &asset.CreatorId); err != nil {
 			return nil, fmt.Errorf("%s: error getting next row %v", fn, err)
 		}
 		assets = append(assets, &asset)

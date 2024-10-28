@@ -53,8 +53,6 @@ func CreateAsset(strg storage.Storage) http.HandlerFunc {
 
 		var newAsset models.Assets
 
-		newAsset.CreatorId = userId
-
 		if isApi {
 			if err := json.NewDecoder(r.Body).Decode(&newAsset); err != nil {
 				http.Error(w, "Invalid request", http.StatusBadRequest)
@@ -89,6 +87,8 @@ func CreateAsset(strg storage.Storage) http.HandlerFunc {
 			http.Error(w, "Bad data. Check if asset name is not empty and you are authenticated", http.StatusBadRequest)
 			return
 		}
+
+		newAsset.CreatorId = userId
 		id, err := strg.CreateAsset(&newAsset)
 		if err != nil {
 			log.Println(err)
@@ -108,7 +108,6 @@ func CreateAsset(strg storage.Storage) http.HandlerFunc {
 func GetAsset(strg storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		log.Println("STARTING HANDLING ASSET GETTER")
 		userId, authErr := mauth.IdFromContext(r.Context())
 		if authErr != nil && !errors.Is(authErr, mauth.UnauthorizedErr) {
 			http.Error(w, "Auth token internal error", http.StatusInternalServerError)
@@ -125,7 +124,6 @@ func GetAsset(strg storage.Storage) http.HandlerFunc {
 			site.NotFoundHandler(w, r)
 			return
 		}
-
 		isApi, ok := common.IsApiFromContext(r.Context())
 		if !ok {
 			http.Error(w, "Failed to get context", http.StatusInternalServerError)

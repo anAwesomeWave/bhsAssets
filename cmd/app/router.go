@@ -75,13 +75,8 @@ func setUpRouter(db *storage.Storage) *chi.Mux {
 			})
 			r.Route("/users", func(r chi.Router) {
 				r.Use(midauth.CustomAuthenticator(auth.TokenAuth))
-				r.Group(func(r chi.Router) {
-					r.Get("/me", users.GetUserData(*db))
-				})
-
-				r.Route("/balance", func(r chi.Router) {
-					r.Patch("/", users.UpdateBalanceInfo(*db))
-				})
+				r.Get("/me", users.GetUserData(*db))
+				r.Patch("/balance", users.UpdateBalanceInfo(*db))
 			})
 
 			r.Route("/assets", func(r chi.Router) {
