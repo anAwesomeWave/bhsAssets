@@ -4,6 +4,7 @@
 ## 📖 About
 This repository contains the backend code for the BHS marketplace, written in Go. It provides a web application to manage and trade assets on the marketplace.
 
+**!Note - jwt secret is public, should be changed in production!**
 ## ⚙️ Prerequisites
 Ensure the following prerequisites are installed on your system:
 1. **Docker**  
