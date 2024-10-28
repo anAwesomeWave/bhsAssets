@@ -18,7 +18,7 @@ services:
         condition: service_healthy  # без этого контейнеры будут "стучаться" в бд до ее полноценного запуска
   db:
     image: postgres:13.10
-    env_file: config/.storage_env
+    env_file: config/.storage_env-public
     ports:
       - "54321:5432"  # non-default postgres port to prevent collision
     volumes:
