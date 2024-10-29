@@ -22,18 +22,30 @@ func GetAssetsCreationPage(w http.ResponseWriter, r *http.Request) {
 	user, ok := mauth.FromContext(r.Context())
 	// maybe add info about assets
 	if !ok {
-		http.Error(w, "User not found in context", http.StatusUnauthorized)
+		site.ServeError(w, false, http.StatusUnauthorized, "User not found in context", false)
 		return
 	}
 	assetId := r.URL.Query().Get(ASSET_CREATION_QUERY)
 	tmpl, err := template.ParseFiles("./templates/common/base.html", "./templates/assets/create.html")
 	if err != nil {
-		http.Error(w, "Error loading template", http.StatusInternalServerError)
+		site.ServeError(
+			w,
+			false,
+			http.StatusInternalServerError,
+			"Error loading template",
+			user != nil && user.Id > 0,
+		)
 		log.Println(err)
 		return
 	}
 	if err := tmpl.Execute(w, map[string]interface{}{"isLogined": user != nil && user.Id > 0, "createdId": assetId}); err != nil {
-		http.Error(w, "Error templating", http.StatusInternalServerError)
+		site.ServeError(
+			w,
+			false,
+			http.StatusInternalServerError,
+			"Error serving (executing) template",
+			user != nil && user.Id > 0,
+		)
 		log.Println(err)
 		return
 	}
@@ -44,47 +56,97 @@ func CreateAsset(strg storage.Storage) http.HandlerFunc {
 		isApi, ok := common.IsApiFromContext(r.Context())
 		if !ok {
 			http.Error(w, "Failed to get context", http.StatusInternalServerError)
+			return
 		}
 		userId, err := mauth.IdFromContext(r.Context())
 
 		if err != nil {
-			http.Error(w, "unauthorized request", http.StatusUnauthorized)
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusUnauthorized,
+				"unauthorized request",
+				false,
+			)
+			return
 		}
 
 		var newAsset models.Assets
 
 		if isApi {
 			if err := json.NewDecoder(r.Body).Decode(&newAsset); err != nil {
-				http.Error(w, "Invalid request", http.StatusBadRequest)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusBadRequest,
+					"Invalid request",
+					userId > 0,
+				)
 				return
 			}
 		} else {
 			if err := r.ParseForm(); err != nil {
-				http.Error(w, "Unable to parse form", http.StatusInternalServerError)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusInternalServerError,
+					"Unable to parse form",
+					userId > 0,
+				)
 				return
 			}
 			if _, ok := r.Form["name"]; !ok {
-				http.Error(w, "Bad form. Unable to find `name` field", http.StatusBadRequest)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusBadRequest,
+					"Bad form. Unable to find `name` field",
+					userId > 0,
+				)
 				return
 			}
 			if _, ok := r.Form["description"]; !ok {
-				http.Error(w, "Bad form. Unable to find `description` field", http.StatusBadRequest)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusBadRequest,
+					"Bad form. Unable to find `description` field",
+					userId > 0,
+				)
 				return
 			}
 			if _, ok := r.Form["price"]; !ok {
-				http.Error(w, "Bad form. Unable to find `price` field", http.StatusBadRequest)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusBadRequest,
+					"Bad form. Unable to find `price` field",
+					userId > 0,
+				)
 				return
 			}
 			newAsset.Name = r.Form["name"][0]
 			newAsset.Description = r.Form["description"][0]
 			newAsset.Price, err = strconv.ParseFloat(r.Form["price"][0], 64)
 			if err != nil {
-				http.Error(w, "Bad form. `price` field is not convertable to float64", http.StatusBadRequest)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusBadRequest,
+					"Bad form. `price` field is not convertable to float64",
+					userId > 0,
+				)
 				return
 			}
 		}
 		if userId < 0 || newAsset.Name == "" {
-			http.Error(w, "Bad data. Check if asset name is not empty and you are authenticated", http.StatusBadRequest)
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusBadRequest,
+				"Bad data. Check if asset name is not empty and you are authenticated.",
+				userId > 0,
+			)
 			return
 		}
 
@@ -92,7 +154,13 @@ func CreateAsset(strg storage.Storage) http.HandlerFunc {
 		id, err := strg.CreateAsset(&newAsset)
 		if err != nil {
 			log.Println(err)
-			http.Error(w, "Bad request, asset cannot be created", http.StatusBadRequest)
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusBadRequest,
+				"Bad request, asset cannot be created.",
+				userId > 0,
+			)
 			return
 
 		}
@@ -107,33 +175,59 @@ func CreateAsset(strg storage.Storage) http.HandlerFunc {
 
 func GetAsset(strg storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		isApi, ok := common.IsApiFromContext(r.Context())
+		if !ok {
+			http.Error(w, "Failed to get context", http.StatusInternalServerError)
+			return
+		}
 
 		userId, authErr := mauth.IdFromContext(r.Context())
 		if authErr != nil && !errors.Is(authErr, mauth.UnauthorizedErr) {
-			http.Error(w, "Auth token internal error", http.StatusInternalServerError)
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusInternalServerError,
+				"Auth token internal error",
+				false,
+			)
 			return
 		}
 
 		assetId, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 		if err != nil {
-			site.NotFoundHandler(w, r)
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusNotFound,
+				"Asset was not found. Asset Id is incorrect. (non-int).",
+				userId > 0,
+			)
 			return
 		}
 		asset, err := strg.GetAssetById(assetId)
 		if err != nil {
-			site.NotFoundHandler(w, r)
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusNotFound,
+				"Asset was not found",
+				userId > 0,
+			)
 			return
 		}
-		isApi, ok := common.IsApiFromContext(r.Context())
-		if !ok {
-			http.Error(w, "Failed to get context", http.StatusInternalServerError)
-		}
+
 		if isApi {
 			json.NewEncoder(w).Encode(asset)
 		} else {
 			tmpl, err := template.ParseFiles("./templates/common/base.html", "./templates/assets/get.html")
 			if err != nil {
-				http.Error(w, "Error loading template", http.StatusInternalServerError)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusInternalServerError,
+					"Error loading template",
+					userId > 0,
+				)
 				log.Println(err)
 				return
 			}
@@ -141,7 +235,13 @@ func GetAsset(strg storage.Storage) http.HandlerFunc {
 			creator, err := strg.GetUserById(asset.CreatorId)
 			if err != nil {
 				log.Println(w, fmt.Sprintf("creator with id %v not found for asset %v: %v", asset.Id, asset, err))
-				http.Error(w, "Creator Not Found", http.StatusInternalServerError)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusInternalServerError,
+					"Asset Creator Was Not Found.",
+					userId > 0,
+				)
 				return
 			}
 
@@ -151,7 +251,13 @@ func GetAsset(strg storage.Storage) http.HandlerFunc {
 				"isCreator": authErr == nil && creator.Id == userId,
 				"isLogined": authErr == nil && userId > 0,
 			}); err != nil {
-				http.Error(w, "Error templating", http.StatusInternalServerError)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusInternalServerError,
+					"Error serving (executing) template.",
+					userId > 0,
+				)
 				log.Println(err)
 				return
 			}
@@ -161,67 +267,110 @@ func GetAsset(strg storage.Storage) http.HandlerFunc {
 }
 
 func DeleteAsset(strg storage.Storage) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	const fn = "assets.DeleteAsset"
 
+	return func(w http.ResponseWriter, r *http.Request) {
+		isApi, ok := common.IsApiFromContext(r.Context())
+		if !ok {
+			http.Error(w, "Failed to get context", http.StatusInternalServerError)
+			return
+		}
 		userId, authErr := mauth.IdFromContext(r.Context())
 		if authErr != nil && !errors.Is(authErr, mauth.UnauthorizedErr) {
-			http.Error(w, "Auth token internal error", http.StatusInternalServerError)
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusInternalServerError,
+				"Auth token internal error.",
+				false,
+			)
 			return
 		}
 
 		assetId, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 		if err != nil {
-			site.NotFoundHandler(w, r)
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusNotFound,
+				fmt.Sprintf("Asset with id %s was not found.", chi.URLParam(r, "id")),
+				userId > 0,
+			)
 			return
 		}
 		asset, err := strg.GetAssetById(assetId)
 		if err != nil {
-			site.NotFoundHandler(w, r)
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusNotFound,
+				fmt.Sprintf("Asset with id %d was not found.", assetId),
+				userId > 0,
+			)
 			return
 		}
 
 		if asset.CreatorId != userId {
-			http.Error(w, "forbidden. You are not the creator of the asset", http.StatusForbidden)
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusForbidden,
+				"forbidden. You are not the creator of the asset",
+				userId > 0,
+			)
 			return
 		}
-		deletionErr := strg.DeleteAsset(assetId)
-
-		isApi, ok := common.IsApiFromContext(r.Context())
-		if !ok {
-			http.Error(w, "Failed to get context", http.StatusInternalServerError)
-		}
-		if isApi {
-			if deletionErr != nil {
-				if errors.Is(deletionErr, storage.ErrNotFound) {
-					w.WriteHeader(http.StatusNotFound)
-					json.NewEncoder(w).Encode(map[string]string{"status": "404"})
-					return
-				}
-				w.WriteHeader(http.StatusInternalServerError)
-				json.NewEncoder(w).Encode(map[string]string{"status": "500"})
+		if deletionErr := strg.DeleteAsset(assetId); deletionErr != nil {
+			if errors.Is(deletionErr, storage.ErrNotFound) {
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusNotFound,
+					fmt.Sprintf("Asset with id %d was not found.", assetId),
+					userId > 0,
+				)
 				return
 			}
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusInternalServerError,
+				"Internal server error occur, while deleting asset.",
+				userId > 0,
+			)
+			log.Printf("%s: error with deleting asset %d: %v\n", fn, assetId, deletionErr)
+			return
+		}
+		if isApi {
 			json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 		} else {
 			http.Redirect(w, r, "/users/me", http.StatusSeeOther)
-
 		}
 	}
 }
 
 func GetAllAssets(strg storage.Storage) http.HandlerFunc {
+	const fn = "assets.GetAllAssets"
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		const fn = "assets.GetAllAssets"
-		log.Println("STARTING ALL ASSETS GETTER")
-		userId, authErr := mauth.IdFromContext(r.Context())
-		if authErr != nil && !errors.Is(authErr, mauth.UnauthorizedErr) {
-			http.Error(w, "Auth token internal error", http.StatusInternalServerError)
-			return
-		}
 		isApi, ok := common.IsApiFromContext(r.Context())
 		if !ok {
 			http.Error(w, "Failed to get context", http.StatusInternalServerError)
+			return
 		}
+
+		userId, authErr := mauth.IdFromContext(r.Context())
+		if authErr != nil && !errors.Is(authErr, mauth.UnauthorizedErr) {
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusInternalServerError,
+				"Auth token internal error",
+				false,
+			)
+			return
+		}
+
 		filters := make(map[string]string, 3)
 		if nm := r.URL.Query().Get("name"); nm != "" {
 			filters["name"] = nm
@@ -235,7 +384,13 @@ func GetAllAssets(strg storage.Storage) http.HandlerFunc {
 		assets, err := strg.GetAllAssetsFiltered(filters)
 		if err != nil {
 			log.Printf("%s: error getting list of assets: %v\n", fn, err)
-			http.Error(w, "error getting list of assets", http.StatusInternalServerError)
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusInternalServerError,
+				"error getting list of assets",
+				userId > 0,
+			)
 			return
 		}
 		if isApi {
@@ -243,7 +398,13 @@ func GetAllAssets(strg storage.Storage) http.HandlerFunc {
 		} else {
 			tmpl, err := template.ParseFiles("./templates/common/base.html", "./templates/assets/getAll.html")
 			if err != nil {
-				http.Error(w, "Error loading template", http.StatusInternalServerError)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusInternalServerError,
+					"Error loading template",
+					userId > 0,
+				)
 				log.Println(err)
 				return
 			}
@@ -251,8 +412,14 @@ func GetAllAssets(strg storage.Storage) http.HandlerFunc {
 				"assets":    assets,
 				"isLogined": authErr == nil && userId > 0,
 			}); err != nil {
-				http.Error(w, "Error templating", http.StatusInternalServerError)
-				log.Println(err)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusInternalServerError,
+					"Error serving (executing) templating",
+					userId > 0,
+				)
+				log.Printf("%s: %v\n", fn, err)
 				return
 			}
 
@@ -261,73 +428,96 @@ func GetAllAssets(strg storage.Storage) http.HandlerFunc {
 }
 
 func BuyAsset(strg storage.Storage) http.HandlerFunc {
+	const fn = "assets.BuyAsset"
 	return func(w http.ResponseWriter, r *http.Request) {
+		isApi, ok := common.IsApiFromContext(r.Context())
+		if !ok {
+			http.Error(w, "Failed to get context", http.StatusInternalServerError)
+			return
+		}
 		user, ok := mauth.FromContext(r.Context())
 		if !ok {
-			http.Error(w, "User not found in context", http.StatusUnauthorized)
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusUnauthorized,
+				"User not found in context",
+				false,
+			)
 			return
 		}
 
 		assetId, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 		if err != nil {
-			site.NotFoundHandler(w, r)
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusNotFound,
+				fmt.Sprintf("Asset with id %s was not found.", chi.URLParam(r, "id")),
+				user.Id > 0,
+			)
 			return
 		}
 
 		asset, err := strg.GetAssetById(assetId)
 		if err != nil {
-			site.NotFoundHandler(w, r)
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusNotFound,
+				fmt.Sprintf("Asset with id %d was not found.", assetId),
+				user.Id > 0,
+			)
 			return
 		}
 
 		creator, err := strg.GetUserById(asset.CreatorId)
 		if err != nil {
-			http.Error(
+			site.ServeError(
 				w,
-				"We are sorry, but... Creator for this asset was not found. You cannot purchase this asset",
+				isApi,
 				http.StatusInternalServerError,
+				"We are sorry, but... Creator for this asset was not found. You cannot purchase this asset",
+				user.Id > 0,
 			)
 			return
 		}
 
 		if user.Id == creator.Id {
-			http.Error(
+			site.ServeError(
 				w,
-				"You cannot buy this asset since you are the creator of this asset",
+				isApi,
 				http.StatusForbidden,
+				"You cannot buy this asset since you are the creator of this asset",
+				user.Id > 0,
 			)
 			return
 		}
 		if user.Balance < asset.Price {
-			http.Error(
+			site.ServeError(
 				w,
-				"You don't have enough money to buy this asset.",
+				isApi,
 				http.StatusConflict,
+				"You don't have enough money to buy this asset.",
+				user.Id > 0,
 			)
 			return
 		}
 
-		isApi, ok := common.IsApiFromContext(r.Context())
-		if !ok {
-			http.Error(w, "Failed to get context", http.StatusInternalServerError)
-		}
-
-		buyAssetErr := strg.BuyAsset(user, asset, creator)
-		status := http.StatusCreated
-		data := "ok"
-		if buyAssetErr != nil {
-			log.Println(err)
-			status = http.StatusBadRequest
-			data = "cannot process request"
+		if buyAssetErr := strg.BuyAsset(user, asset, creator); buyAssetErr != nil {
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusBadRequest,
+				"Cannot process request. Error occured",
+				user.Id > 0,
+			)
+			log.Printf("%s: error process transaction assetId-%d, userId-%d, creatorId-%d, : %v", fn, assetId, user.Id, creator.Id, buyAssetErr)
 		}
 		if isApi {
-			w.WriteHeader(status)
-			json.NewEncoder(w).Encode(map[string]string{"status": data})
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 		} else {
-			if buyAssetErr != nil {
-				http.Error(w, data, status)
-				return
-			}
 			http.Redirect(w, r, "/users/me", http.StatusSeeOther)
 		}
 	}

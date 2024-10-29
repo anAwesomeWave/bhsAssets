@@ -53,13 +53,13 @@ func ServeError(w http.ResponseWriter, isApi bool, httpStatusCode int, message s
 				return
 			}
 			w.WriteHeader(http.StatusNotFound)
-			if err := tmpl.Execute(w, map[string]interface{}{"isLogined": isLogined}); err != nil {
+			if err := tmpl.Execute(w, map[string]interface{}{"isLogined": isLogined, "Message": message}); err != nil {
 				http.Error(w, "Error templating", http.StatusInternalServerError)
 				log.Println(err)
 				return
 			}
 			return
-		case http.StatusBadRequest:
+		case http.StatusUnauthorized:
 			t, err := template.ParseFiles("./templates/common/base.html", "./templates/common/401_error.html")
 			if err != nil {
 				http.Error(w, "Error loading template", http.StatusInternalServerError)
@@ -82,7 +82,7 @@ func ServeError(w http.ResponseWriter, isApi bool, httpStatusCode int, message s
 			}
 			w.WriteHeader(http.StatusUnauthorized)
 			if err := t.Execute(w, map[string]interface{}{
-				"isLogined":    false,
+				"isLogined":    isLogined,
 				"errorCode":    httpStatusCode,
 				"errorMessage": message,
 			}); err != nil {
