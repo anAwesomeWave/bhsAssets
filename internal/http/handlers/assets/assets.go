@@ -203,30 +203,7 @@ func DeleteAsset(strg storage.Storage) http.HandlerFunc {
 			}
 			json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 		} else {
-			tmpl, err := template.ParseFiles("./templates/common/base.html", "./templates/assets/get.html")
-			if err != nil {
-				http.Error(w, "Error loading template", http.StatusInternalServerError)
-				log.Println(err)
-				return
-			}
-
-			creator, err := strg.GetUserById(asset.CreatorId)
-			if err != nil {
-				log.Println(w, fmt.Sprintf("creator with id %v not found for asset %v: %v", asset.Id, asset, err))
-				http.Error(w, "Creator Not Found", http.StatusInternalServerError)
-				return
-			}
-
-			if err := tmpl.Execute(w, map[string]interface{}{
-				"asset":     asset,
-				"creator":   creator,
-				"isCreator": authErr == nil && creator.Id == userId,
-				"isLogined": authErr == nil && userId > 0,
-			}); err != nil {
-				http.Error(w, "Error templating", http.StatusInternalServerError)
-				log.Println(err)
-				return
-			}
+			http.Redirect(w, r, "/users/me", http.StatusSeeOther)
 
 		}
 	}
