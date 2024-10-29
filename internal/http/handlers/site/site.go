@@ -59,7 +59,7 @@ func ServeError(w http.ResponseWriter, isApi bool, httpStatusCode int, message s
 				return
 			}
 			return
-		case http.StatusBadRequest:
+		case http.StatusUnauthorized:
 			t, err := template.ParseFiles("./templates/common/base.html", "./templates/common/401_error.html")
 			if err != nil {
 				http.Error(w, "Error loading template", http.StatusInternalServerError)
@@ -82,7 +82,7 @@ func ServeError(w http.ResponseWriter, isApi bool, httpStatusCode int, message s
 			}
 			w.WriteHeader(http.StatusUnauthorized)
 			if err := t.Execute(w, map[string]interface{}{
-				"isLogined":    false,
+				"isLogined":    isLogined,
 				"errorCode":    httpStatusCode,
 				"errorMessage": message,
 			}); err != nil {

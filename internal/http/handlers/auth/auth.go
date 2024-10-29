@@ -100,7 +100,7 @@ func Register(strg storage.Storage) http.HandlerFunc {
 					w,
 					isApi,
 					http.StatusBadRequest,
-					"User exists.",
+					"User already exists.",
 					false,
 				)
 				return
