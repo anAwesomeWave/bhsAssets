@@ -89,7 +89,7 @@ The API is accessible via different base URLs depending on the environment:
   Retrieves a list of all assets that match query parameters.
 
 
-- `POST /api/assets/buy/{id}`  
+- `POST /api/assets/{id}`  
   Purchases an asset by ID.
   **Response Status Codes:**
     - `201 Crreated` - Transaction successful.
@@ -177,7 +177,7 @@ The API is accessible via different base URLs depending on the environment:
 - `/assets`  
   Displays all available assets.
 
-- `/assets/buy/{id}`  
+- `/assets/{id}`  
   Buy a specific asset.
 
 - `/assets/create`  

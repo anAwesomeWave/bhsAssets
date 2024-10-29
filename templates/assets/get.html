@@ -7,8 +7,15 @@
     <li> Asset Price: {{ .asset.Price }} </li>
     <li> Asset Creator: <a href="/users/{{.creator.Id}}">{{.creator.Login }}</a></li>
 
-    <form action="/assets/buy/{{.asset.Id}}" method="post" class="inline">
-        <button type="submit" class="btn-link">Buy asset {{ .asset.Name }} </button>
-    </form>
+    {{ if .isCreator }}
+        <form action="/assets/{{.asset.Id}}" method="post" class="inline">
+            <input type="hidden" name="_method" value="DELETE" />
+            <button type="submit" class="btn-link">Delete Asset {{ .asset.Name }} </button>
+        </form>
+    {{ else }}
+        <form action="/assets/{{.asset.Id}}" method="post" class="inline">
+            <button type="submit" class="btn-link">Buy asset {{ .asset.Name }} </button>
+        </form>
+    {{ end}}
 </ul>
 {{end}}
