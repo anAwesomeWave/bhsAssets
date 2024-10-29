@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bhsAssets/internal/http/handlers/site"
 	mauth "bhsAssets/internal/http/middleware/auth"
 	"bhsAssets/internal/http/middleware/common"
 	"bhsAssets/internal/storage"
@@ -35,24 +36,48 @@ func Register(strg storage.Storage) http.HandlerFunc {
 		isApi, ok := common.IsApiFromContext(r.Context())
 		if !ok {
 			http.Error(w, "Failed to get context", http.StatusInternalServerError)
-
+			return
 		}
 		if isApi {
 			if err := json.NewDecoder(r.Body).Decode(&user); err != nil || len(user.Login) == 0 || len(user.Password) == 0 {
-				http.Error(w, "Invalid request", http.StatusBadRequest)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusBadRequest,
+					"Invalid request.",
+					false,
+				)
 				return
 			}
 		} else {
 			if err := r.ParseForm(); err != nil {
-				http.Error(w, "Unable to parse form", http.StatusInternalServerError)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusInternalServerError,
+					"Unable to parse form.",
+					false,
+				)
 				return
 			}
 			if _, ok := r.Form["login"]; !ok {
-				http.Error(w, "Bad form. Unable to find `login` field", http.StatusBadRequest)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusBadRequest,
+					"Bad form. Unable to find `login` field.",
+					false,
+				)
 				return
 			}
 			if _, ok := r.Form["password"]; !ok {
-				http.Error(w, "Bad form. Unable to find `password` field", http.StatusBadRequest)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusBadRequest,
+					"Bad form. Unable to find `password` field.",
+					false,
+				)
 				return
 			}
 			user.Login = r.Form["login"][0]
@@ -60,17 +85,34 @@ func Register(strg storage.Storage) http.HandlerFunc {
 		}
 		if len(user.Login) == 0 || len(user.Password) == 0 {
 			log.Println(user)
-			http.Error(w, "user Parsing error. fields are empty", http.StatusInternalServerError)
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusInternalServerError,
+				"user Parsing error. fields are empty.",
+				false,
+			)
 			return
 		}
-		_, err := strg.CreateUser(user.Login, user.Password)
-		if err != nil {
+		if _, err := strg.CreateUser(user.Login, user.Password); err != nil {
 			if errors.Is(err, storage.ErrExists) {
-				http.Error(w, "User exists", http.StatusBadRequest)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusBadRequest,
+					"User exists.",
+					false,
+				)
 				return
 			}
 			log.Printf("%s:%v\n", fn, err)
-			http.Error(w, "Failed to create user", http.StatusInternalServerError)
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusInternalServerError,
+				"Failed to create user.",
+				false,
+			)
 			return
 		}
 		if isApi {
@@ -88,20 +130,40 @@ func Register(strg storage.Storage) http.HandlerFunc {
 }
 
 func GetRegisterPage(w http.ResponseWriter, r *http.Request) {
+	userId, authErr := mauth.IdFromContext(r.Context())
+	if authErr != nil && !errors.Is(authErr, mauth.UnauthorizedErr) {
+		site.ServeError(
+			w,
+			false,
+			http.StatusInternalServerError,
+			"Auth token internal error.",
+			false,
+		)
+		return
+	}
+
 	t, err := template.ParseFiles("./templates/common/base.html", "./templates/auth/register.html")
 
 	if err != nil {
-		http.Error(w, "Error loading template", http.StatusInternalServerError)
+		site.ServeError(
+			w,
+			false,
+			http.StatusInternalServerError,
+			"Error loading template.",
+			userId > 0,
+		)
 		log.Println(err)
 		return
 	}
-	userId, authErr := mauth.IdFromContext(r.Context())
-	if err != nil && !errors.Is(err, mauth.UnauthorizedErr) {
-		http.Error(w, "Auth token internal error", http.StatusInternalServerError)
-		return
-	}
+
 	if err := t.Execute(w, map[string]interface{}{"isLogined": authErr == nil && userId > 0}); err != nil {
-		http.Error(w, "Error templating", http.StatusInternalServerError)
+		site.ServeError(
+			w,
+			false,
+			http.StatusInternalServerError,
+			"Error serving (executing) template.",
+			userId > 0,
+		)
 		log.Println(err)
 		return
 	}
@@ -113,24 +175,48 @@ func Login(strg storage.Storage) http.HandlerFunc {
 		isApi, ok := common.IsApiFromContext(r.Context())
 		if !ok {
 			http.Error(w, "Failed to get context", http.StatusInternalServerError)
-
+			return
 		}
 		if isApi {
 			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-				http.Error(w, "Invalid request", http.StatusBadRequest)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusBadRequest,
+					"Invalid request.",
+					false,
+				)
 				return
 			}
 		} else {
 			if err := r.ParseForm(); err != nil {
-				http.Error(w, "Unable to parse form", http.StatusInternalServerError)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusInternalServerError,
+					"Unable to parse form.",
+					false,
+				)
 				return
 			}
 			if _, ok := r.Form["login"]; !ok {
-				http.Error(w, "Bad form. Unable to find `login` field", http.StatusBadRequest)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusBadRequest,
+					"Bad form. Unable to find `login` field.",
+					false,
+				)
 				return
 			}
 			if _, ok := r.Form["password"]; !ok {
-				http.Error(w, "Bad form. Unable to find `password` field", http.StatusBadRequest)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusBadRequest,
+					"Bad form. Unable to find `password` field.",
+					false,
+				)
 				return
 			}
 			input.Login = r.Form["login"][0]
@@ -139,7 +225,13 @@ func Login(strg storage.Storage) http.HandlerFunc {
 		user, err := strg.GetUser(input.Login, input.Password)
 		if err != nil {
 			if isApi {
-				http.Error(w, "Invalid credentials", http.StatusNotFound)
+				site.ServeError(
+					w,
+					isApi,
+					http.StatusNotFound,
+					"Invalid credentials.",
+					false,
+				)
 			} else {
 				http.Redirect(
 					w,
@@ -156,7 +248,13 @@ func Login(strg storage.Storage) http.HandlerFunc {
 			"exp":     time.Now().Add(time.Hour).Unix(),
 		})
 		if err != nil {
-			http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+			site.ServeError(
+				w,
+				isApi,
+				http.StatusInternalServerError,
+				"Failed to generate token.",
+				false,
+			)
 			return
 		}
 		cookie := &http.Cookie{
@@ -180,17 +278,36 @@ func GetLoginPage(w http.ResponseWriter, r *http.Request) {
 	_, isInvalid := r.URL.Query()[INVAILD_CREDENTIALS_QUERY]
 	tmpl, err := template.ParseFiles("./templates/common/base.html", "./templates/auth/login.html")
 	if err != nil {
-		http.Error(w, "Error loading template", http.StatusInternalServerError)
+		site.ServeError(
+			w,
+			false,
+			http.StatusInternalServerError,
+			"Error loading template.",
+			false,
+		)
 		log.Println(err)
 		return
 	}
 	userId, authErr := mauth.IdFromContext(r.Context())
 	if authErr != nil && !errors.Is(authErr, mauth.UnauthorizedErr) {
-		http.Error(w, "Auth token internal error", http.StatusInternalServerError)
+		site.ServeError(
+			w,
+			false,
+			http.StatusInternalServerError,
+			"Auth token internal error.",
+			false,
+		)
 		return
 	}
 	if err := tmpl.Execute(w, map[string]interface{}{"isLogined": authErr == nil && userId > 0, "isInvalid": isInvalid}); err != nil {
 		http.Error(w, "Error templating", http.StatusInternalServerError)
+		site.ServeError(
+			w,
+			false,
+			http.StatusInternalServerError,
+			"Error executing (serving) template.",
+			false,
+		)
 		log.Println(err)
 		return
 	}

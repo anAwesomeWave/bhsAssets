@@ -53,7 +53,7 @@ func ServeError(w http.ResponseWriter, isApi bool, httpStatusCode int, message s
 				return
 			}
 			w.WriteHeader(http.StatusNotFound)
-			if err := tmpl.Execute(w, map[string]interface{}{"isLogined": isLogined}); err != nil {
+			if err := tmpl.Execute(w, map[string]interface{}{"isLogined": isLogined, "Message": message}); err != nil {
 				http.Error(w, "Error templating", http.StatusInternalServerError)
 				log.Println(err)
 				return
