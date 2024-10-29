@@ -17,13 +17,12 @@ import (
 func setUpRouter(db *storage.Storage) *chi.Mux {
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
+	router.Use(common.MethodOverride) // для html форм
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer) // не падать при панике
 	router.Use(middleware.URLFormat) // удобно брать из урлов данные
 	router.Use(middleware.StripSlashes)
 	router.Use(common.SetIsApiContextVariable)
-
-	router.Use(common.MethodOverride) // для html форм
 
 	router.NotFound(site.NotFoundHandler)
 
